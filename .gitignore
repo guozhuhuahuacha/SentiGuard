@@ -46,3 +46,7 @@ eval/
 test_results.json
 src/test/python/verify.py
 debug.log
+
+# Personal reference docs (not for repo)
+*.doc
+*.docx

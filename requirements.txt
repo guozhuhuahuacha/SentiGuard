@@ -30,6 +30,10 @@ jsonlines
 tenacity
 pyyaml
 
+# Web service (internal API for Spring Boot integration)
+fastapi
+uvicorn[standard]
+
 # Academic search and citation tools
 scholarly
 biopython
