@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SentiGuard 后端课程设计前端概念图</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      color: #1f2937;
+      background: #eef2f6;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      grid-template-rows: 64px 1fr;
+    }
+
+    .topbar {
+      grid-column: 1 / 3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      color: #fff;
+      background: #123047;
+      border-bottom: 4px solid #1c9ad6;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      color: #123047;
+      background: #f7c948;
+      font-weight: 900;
+    }
+
+    .userbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+      color: #dbeafe;
+    }
+
+    .role {
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: #0f172a;
+      background: #a7f3d0;
+      font-weight: 700;
+    }
+
+    .sidebar {
+      background: #24384b;
+      color: #d7e3ef;
+      padding: 22px 0;
+    }
+
+    .menu-title {
+      padding: 14px 24px;
+      color: #93a9ba;
+      font-size: 13px;
+    }
+
+    .menu-item {
+      padding: 16px 24px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-weight: 600;
+      border-left: 4px solid transparent;
+    }
+
+    .menu-item.active {
+      color: #fff;
+      background: #3198d2;
+      border-left-color: #f7c948;
+    }
+
+    .workspace {
+      padding: 26px 30px 34px;
+      overflow: auto;
+    }
+
+    .page-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 6px;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: #fff;
+      background: #248bd0;
+      font-weight: 700;
+      cursor: default;
+    }
+
+    button.secondary {
+      color: #123047;
+      background: #e2e8f0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid #dce5ee;
+      border-radius: 8px;
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.07);
+    }
+
+    .panel-header {
+      padding: 18px 22px 12px;
+      border-bottom: 2px solid #2f9ada;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #248bd0;
+    }
+
+    .panel-body {
+      padding: 18px 22px 22px;
+    }
+
+    .hot-row {
+      display: grid;
+      grid-template-columns: 46px 1fr 70px 82px;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 8px;
+      border-bottom: 1px solid #edf2f7;
+    }
+
+    .rank {
+      font-size: 18px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .hot-name {
+      font-weight: 700;
+    }
+
+    .score {
+      color: #64748b;
+      text-align: right;
+      font-weight: 700;
+    }
+
+    .tag {
+      text-align: center;
+      padding: 7px 10px;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .positive {
+      color: #15803d;
+      background: #dcfce7;
+    }
+
+    .negative {
+      color: #dc2626;
+      background: #fee2e2;
+    }
+
+    .neutral {
+      color: #b45309;
+      background: #fef3c7;
+    }
+
+    .input-line {
+      display: grid;
+      grid-template-columns: 1fr 86px;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    input {
+      height: 42px;
+      border: 1px solid #d4dde8;
+      border-radius: 6px;
+      padding: 0 12px;
+      font-size: 14px;
+    }
+
+    .result-box {
+      padding: 18px;
+      border-radius: 7px;
+      background: #f5f7fa;
+      margin-bottom: 14px;
+    }
+
+    .conclusion {
+      color: #dc2626;
+      font-size: 22px;
+      line-height: 1.45;
+      font-weight: 900;
+      margin-top: 8px;
+    }
+
+    .evidence-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .evidence {
+      border-left: 4px solid #2f9ada;
+      background: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 5px;
+    }
+
+    .evidence strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .history-item {
+      display: grid;
+      grid-template-columns: 1fr 150px 90px;
+      gap: 16px;
+      align-items: center;
+      padding: 13px 14px;
+      background: #f8fafc;
+      border-left: 4px solid #2f9ada;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    .muted {
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    .module-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .module {
+      background: #fff;
+      border: 1px solid #dce5ee;
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .module strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #123047;
+    }
+
+    .login-card {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 22px;
+      border: 1px solid #dce5ee;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    .login-card h2 {
+      margin: 0 0 16px;
+      font-size: 22px;
+      color: #123047;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      margin-bottom: 13px;
+    }
+
+    .field label {
+      font-size: 13px;
+      color: #475569;
+      font-weight: 700;
+    }
+
+    .login-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+    }
+
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .mini-table th,
+    .mini-table td {
+      border-bottom: 1px solid #edf2f7;
+      padding: 12px 10px;
+      text-align: left;
+    }
+
+    .mini-table th {
+      color: #475569;
+      background: #f8fafc;
+      font-weight: 800;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: #16a34a;
+    }
+
+    .status-dot.warn {
+      background: #f59e0b;
+    }
+
+    .status-dot.fail {
+      background: #dc2626;
+    }
+
+    .management-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .management-card {
+      padding: 16px;
+      border: 1px solid #dce5ee;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    .management-card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #123047;
+      font-size: 16px;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: 64px auto 1fr;
+      }
+
+      .topbar {
+        grid-column: 1;
+      }
+
+      .sidebar {
+        display: flex;
+        overflow: auto;
+        padding: 0;
+      }
+
+      .menu-title {
+        display: none;
+      }
+
+      .menu-item {
+        min-width: 130px;
+        border-left: 0;
+        border-bottom: 4px solid transparent;
+      }
+
+      .grid,
+      .module-strip,
+      .management-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">SG</div>
+        <div>SentiGuard 网络舆情监测与事实核查平台</div>
+      </div>
+      <div class="userbar">
+        <span>黄欣卓</span>
+        <span class="role">后端管理员</span>
+        <span>退出</span>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="menu-title">主要功能</div>
+      <div class="menu-item active">热点监测</div>
+      <div class="menu-item">事实核查</div>
+      <div class="menu-item">核查报告</div>
+      <div class="menu-item">历史记录</div>
+      <div class="menu-title">系统管理</div>
+      <div class="menu-item">用户权限</div>
+      <div class="menu-item">采集任务</div>
+      <div class="menu-item">智能体日志</div>
+    </aside>
+
+    <main class="workspace">
+      <section class="page-title">
+        <div>
+          <h1>热点监测总览</h1>
+          <div class="subtitle">新闻采集、热点发现、舆情分析最终汇聚到热点列表，并作为事实核查入口。</div>
+        </div>
+        <div class="actions">
+          <button class="secondary">查看采集任务</button>
+          <button>手动新增热点</button>
+        </div>
+      </section>
+
+      <section class="module-strip">
+        <div class="module">
+          <strong>登录模块</strong>
+          <span class="muted">JWT 鉴权、角色识别、菜单控制</span>
+        </div>
+        <div class="module">
+          <strong>热点列表模块</strong>
+          <span class="muted">展示热点、热度、情感倾向</span>
+        </div>
+        <div class="module">
+          <strong>事实核查模块</strong>
+          <span class="muted">调用 SentiGuard，保存证据和结论</span>
+        </div>
+        <div class="module">
+          <strong>历史与报告模块</strong>
+          <span class="muted">查看历史任务，生成核查报告</span>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">登录模块</div>
+            <span class="muted">来源：user / role / user_role</span>
+          </div>
+          <div class="panel-body">
+            <div class="login-card">
+              <h2>账号登录</h2>
+              <div class="field">
+                <label>用户名</label>
+                <input value="admin">
+              </div>
+              <div class="field">
+                <label>密码</label>
+                <input value="123456" type="password">
+              </div>
+              <div class="login-actions">
+                <span class="muted">登录成功后返回 JWT 与角色菜单</span>
+                <button>登录</button>
+              </div>
+            </div>
+            <div style="margin-top: 16px;">
+              <table class="mini-table">
+                <thead>
+                  <tr>
+                    <th>角色</th>
+                    <th>可见菜单</th>
+                    <th>数据范围</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>普通用户</td>
+                    <td>热点、核查、历史</td>
+                    <td>仅本人任务</td>
+                  </tr>
+                  <tr>
+                    <td>审核员</td>
+                    <td>核查、报告、审核</td>
+                    <td>全部核查任务</td>
+                  </tr>
+                  <tr>
+                    <td>管理员</td>
+                    <td>全部菜单</td>
+                    <td>全系统数据</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">系统管理</div>
+            <span class="muted">管理员可见</span>
+          </div>
+          <div class="panel-body">
+            <div class="management-grid">
+              <div class="management-card">
+                <strong>用户权限</strong>
+                <span class="muted">管理用户账号、角色分配、账号启停。</span>
+              </div>
+              <div class="management-card">
+                <strong>采集任务</strong>
+                <span class="muted">查看 GDELT 采集批次、成功数量、失败原因。</span>
+              </div>
+              <div class="management-card">
+                <strong>智能体日志</strong>
+                <span class="muted">追踪声明拆解、证据检索、真实性判断等步骤。</span>
+              </div>
+            </div>
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>管理项</th>
+                  <th>状态</th>
+                  <th>最近记录</th>
+                  <th>对应数据表</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>用户管理</td>
+                  <td><span class="status-dot"></span>正常</td>
+                  <td>admin 分配审核员角色</td>
+                  <td>user, role, user_role</td>
+                </tr>
+                <tr>
+                  <td>新闻采集任务</td>
+                  <td><span class="status-dot warn"></span>待接入</td>
+                  <td>第一阶段使用模拟热点数据</td>
+                  <td>news_collect_task, news</td>
+                </tr>
+                <tr>
+                  <td>智能体执行日志</td>
+                  <td><span class="status-dot"></span>可记录</td>
+                  <td>evidence_seeker 执行成功</td>
+                  <td>agent_execution_log</td>
+                </tr>
+                <tr>
+                  <td>异常记录</td>
+                  <td><span class="status-dot fail"></span>示例</td>
+                  <td>SentiGuard 服务超时</td>
+                  <td>agent_execution_log</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">热点列表</div>
+            <span class="muted">来源：hot_event</span>
+          </div>
+          <div class="panel-body">
+            <div class="hot-row">
+              <div class="rank">1</div>
+              <div class="hot-name">人工智能技术突破</div>
+              <div class="score">95%</div>
+              <div class="tag positive">正面</div>
+            </div>
+            <div class="hot-row">
+              <div class="rank">2</div>
+              <div class="hot-name">气候变化影响加剧</div>
+              <div class="score">88%</div>
+              <div class="tag negative">负面</div>
+            </div>
+            <div class="hot-row">
+              <div class="rank">3</div>
+              <div class="hot-name">全球经济复苏趋势</div>
+              <div class="score">82%</div>
+              <div class="tag positive">正面</div>
+            </div>
+            <div class="hot-row">
+              <div class="rank">4</div>
+              <div class="hot-name">教育改革新政策</div>
+              <div class="score">75%</div>
+              <div class="tag neutral">中性</div>
+            </div>
+            <div class="hot-row">
+              <div class="rank">5</div>
+              <div class="hot-name">医疗健康问题讨论</div>
+              <div class="score">70%</div>
+              <div class="tag negative">负面</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">事实核查</div>
+            <span class="muted">调用 SentiGuard</span>
+          </div>
+          <div class="panel-body">
+            <div class="input-line">
+              <input value="北大鹅腿阿姨事件">
+              <button>分析</button>
+            </div>
+            <div class="result-box">
+              <strong>结论</strong>
+              <div class="conclusion">经核实：存在严重造假行为</div>
+            </div>
+            <div class="result-box">
+              <strong>声明拆解</strong>
+              <p class="muted">1. 事件是否涉及食品造假<br>2. 是否存在官方或权威证据<br>3. 网络传播内容是否被夸大</p>
+            </div>
+            <div class="evidence-list">
+              <div class="evidence">
+                <strong>支持证据</strong>
+                <span class="muted">市场监管通报与多方报道指向同一事实链。</span>
+              </div>
+              <div class="evidence">
+                <strong>反驳证据</strong>
+                <span class="muted">暂无足够权威反驳材料。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">核查报告</div>
+            <span class="muted">来源：analysis_report</span>
+          </div>
+          <div class="panel-body">
+            <div class="result-box">
+              <strong>北大鹅腿阿姨事件事实核查报告</strong>
+              <p class="muted">报告整合核查对象、声明拆解、支持证据、反驳证据、可信度评分和最终结论，可后续扩展为 PDF 或 Word 导出。</p>
+            </div>
+            <button>查看报告详情</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">查验历史</div>
+            <span class="muted">来源：fact_check_task</span>
+          </div>
+          <div class="panel-body">
+            <div class="history-item">
+              <strong>北大鹅腿阿姨事件</strong>
+              <span class="muted">2026-06-16 10:30</span>
+              <span class="tag negative">证实造假</span>
+            </div>
+            <div class="history-item">
+              <strong>人工智能技术突破</strong>
+              <span class="muted">2026-06-15 14:30</span>
+              <span class="tag positive">已核实</span>
+            </div>
+            <div class="history-item">
+              <strong>气候变化影响加剧</strong>
+              <span class="muted">2026-06-15 13:15</span>
+              <span class="tag neutral">部分真实</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

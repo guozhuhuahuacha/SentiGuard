@@ -1,0 +1,45 @@
+package com.sentiguard.backend.controller;
+
+import java.util.List;
+
+import javax.validation.Valid;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.sentiguard.backend.common.Result;
+import com.sentiguard.backend.dto.FactCheckAnalyzeDTO;
+import com.sentiguard.backend.service.FactCheckService;
+import com.sentiguard.backend.vo.FactCheckDetailVO;
+import com.sentiguard.backend.vo.HistoryVO;
+
+@RestController
+@RequestMapping("/api/fact-check")
+public class FactCheckController {
+
+    private final FactCheckService factCheckService;
+
+    public FactCheckController(FactCheckService factCheckService) {
+        this.factCheckService = factCheckService;
+    }
+
+    @PostMapping("/analyze")
+    public Result<FactCheckDetailVO> analyze(@Valid @RequestBody FactCheckAnalyzeDTO dto) {
+        return Result.ok(factCheckService.analyze(dto));
+    }
+
+    @GetMapping("/tasks/{taskId}")
+    public Result<FactCheckDetailVO> getDetail(@PathVariable Long taskId) {
+        return Result.ok(factCheckService.getDetail(taskId));
+    }
+
+    @GetMapping("/history")
+    public Result<List<HistoryVO>> getHistory(@RequestParam(required = false) Long userId) {
+        return Result.ok(factCheckService.getHistory(userId));
+    }
+}

@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SentiGuard 系统管理页面原型</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      color: #1f2937;
+      background: #eef2f6;
+    }
+    .layout {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 230px 1fr;
+      grid-template-rows: 64px 1fr;
+    }
+    header {
+      grid-column: 1 / 3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      color: #fff;
+      background: #123047;
+      border-bottom: 4px solid #1c9ad6;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      color: #123047;
+      background: #f7c948;
+      font-weight: 900;
+    }
+    .user {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #dbeafe;
+      font-size: 14px;
+    }
+    .role {
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: #0f172a;
+      background: #a7f3d0;
+      font-weight: 800;
+    }
+    aside {
+      background: #24384b;
+      color: #d7e3ef;
+      padding: 22px 0;
+    }
+    .menu-title {
+      padding: 14px 24px;
+      color: #93a9ba;
+      font-size: 13px;
+    }
+    .menu-item {
+      padding: 16px 24px;
+      font-weight: 700;
+      border-left: 4px solid transparent;
+    }
+    .menu-item.active {
+      color: #fff;
+      background: #3198d2;
+      border-left-color: #f7c948;
+    }
+    main {
+      padding: 26px 30px 36px;
+      overflow: auto;
+    }
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 29px;
+      letter-spacing: 0;
+    }
+    .subtitle {
+      margin-top: 7px;
+      color: #64748b;
+      font-size: 14px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: #fff;
+      background: #248bd0;
+      font-weight: 800;
+    }
+    button.secondary {
+      color: #123047;
+      background: #e2e8f0;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .metric,
+    .panel {
+      background: #fff;
+      border: 1px solid #dce5ee;
+      border-radius: 8px;
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+    }
+    .metric {
+      padding: 17px 18px;
+    }
+    .metric-label {
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .metric-value {
+      margin-top: 8px;
+      font-size: 26px;
+      font-weight: 900;
+      color: #123047;
+    }
+    .metric-note {
+      margin-top: 5px;
+      color: #64748b;
+      font-size: 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    .wide {
+      grid-column: 1 / 3;
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 17px 20px 12px;
+      border-bottom: 2px solid #2f9ada;
+    }
+    .panel-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #248bd0;
+    }
+    .panel-body {
+      padding: 18px 20px 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th,
+    td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #edf2f7;
+      text-align: left;
+      vertical-align: middle;
+    }
+    th {
+      color: #475569;
+      background: #f8fafc;
+      font-weight: 900;
+    }
+    .tag {
+      display: inline-block;
+      min-width: 54px;
+      text-align: center;
+      padding: 6px 9px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .ok { color: #15803d; background: #dcfce7; }
+    .warn { color: #b45309; background: #fef3c7; }
+    .bad { color: #dc2626; background: #fee2e2; }
+    .info { color: #0369a1; background: #e0f2fe; }
+    .muted {
+      color: #64748b;
+      font-size: 13px;
+    }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .search {
+      display: grid;
+      grid-template-columns: 1fr 110px;
+      gap: 10px;
+      width: 360px;
+      max-width: 100%;
+    }
+    input,
+    select {
+      height: 40px;
+      border: 1px solid #d4dde8;
+      border-radius: 6px;
+      padding: 0 11px;
+      background: #fff;
+      font-size: 14px;
+    }
+    .log-list {
+      display: grid;
+      gap: 10px;
+    }
+    .log-item {
+      display: grid;
+      grid-template-columns: 180px 1fr 90px 90px;
+      gap: 14px;
+      align-items: center;
+      padding: 13px 14px;
+      border-left: 4px solid #2f9ada;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+    .step {
+      position: relative;
+      min-height: 88px;
+      padding: 12px;
+      border: 1px solid #dce5ee;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+    .step strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #123047;
+    }
+    .step .tag {
+      margin-top: 8px;
+    }
+    @media (max-width: 1100px) {
+      .summary,
+      .grid,
+      .steps {
+        grid-template-columns: 1fr;
+      }
+      .wide {
+        grid-column: auto;
+      }
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: 64px auto 1fr;
+      }
+      header {
+        grid-column: 1;
+      }
+      aside {
+        display: flex;
+        overflow: auto;
+        padding: 0;
+      }
+      .menu-title {
+        display: none;
+      }
+      .menu-item {
+        min-width: 130px;
+        border-left: 0;
+        border-bottom: 4px solid transparent;
+      }
+      .log-item {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header>
+      <div class="brand">
+        <div class="mark">SG</div>
+        <span>SentiGuard 系统管理后台</span>
+      </div>
+      <div class="user">
+        <span>黄欣卓</span>
+        <span class="role">管理员</span>
+        <span>退出登录</span>
+      </div>
+    </header>
+
+    <aside>
+      <div class="menu-title">主要功能</div>
+      <div class="menu-item">热点监测</div>
+      <div class="menu-item">事实核查</div>
+      <div class="menu-item">核查报告</div>
+      <div class="menu-item">历史记录</div>
+      <div class="menu-title">系统管理</div>
+      <div class="menu-item active">系统管理</div>
+    </aside>
+
+    <main>
+      <section class="title-row">
+        <div>
+          <h1>系统管理</h1>
+          <div class="subtitle">面向管理员的后台区域：管理账号权限、监控采集任务、追踪智能体执行、定位异常。</div>
+        </div>
+        <div class="actions">
+          <button class="secondary">导出日志</button>
+          <button>新建用户</button>
+        </div>
+      </section>
+
+      <section class="summary">
+        <div class="metric">
+          <div class="metric-label">系统用户</div>
+          <div class="metric-value">18</div>
+          <div class="metric-note">管理员 2 / 审核员 4 / 普通用户 12</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">今日采集任务</div>
+          <div class="metric-value">6</div>
+          <div class="metric-note">成功 5 次，待处理 1 次</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">智能体调用</div>
+          <div class="metric-value">126</div>
+          <div class="metric-note">平均耗时 2.8 秒</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">异常告警</div>
+          <div class="metric-value">3</div>
+          <div class="metric-note">主要来自证据检索超时</div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">用户权限管理</div>
+            <span class="muted">user / role / user_role</span>
+          </div>
+          <div class="panel-body">
+            <div class="toolbar">
+              <div class="search">
+                <input value="黄欣卓">
+                <button>查询</button>
+              </div>
+              <button class="secondary">角色分配</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>用户</th>
+                  <th>角色</th>
+                  <th>状态</th>
+                  <th>最近登录</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>admin</td>
+                  <td><span class="tag info">管理员</span></td>
+                  <td><span class="tag ok">启用</span></td>
+                  <td>2026-06-16 09:30</td>
+                </tr>
+                <tr>
+                  <td>auditor01</td>
+                  <td><span class="tag warn">审核员</span></td>
+                  <td><span class="tag ok">启用</span></td>
+                  <td>2026-06-15 18:10</td>
+                </tr>
+                <tr>
+                  <td>student01</td>
+                  <td><span class="tag info">普通用户</span></td>
+                  <td><span class="tag bad">禁用</span></td>
+                  <td>2026-06-12 11:25</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">新闻采集任务</div>
+            <span class="muted">news_collect_task / news</span>
+          </div>
+          <div class="panel-body">
+            <div class="toolbar">
+              <select>
+                <option>全部状态</option>
+                <option>成功</option>
+                <option>运行中</option>
+                <option>失败</option>
+              </select>
+              <button>手动触发采集</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>任务名称</th>
+                  <th>关键词</th>
+                  <th>数量</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>GDELT 定时采集 09:00</td>
+                  <td>人工智能</td>
+                  <td>120</td>
+                  <td><span class="tag ok">成功</span></td>
+                </tr>
+                <tr>
+                  <td>GDELT 定时采集 10:00</td>
+                  <td>气候变化</td>
+                  <td>86</td>
+                  <td><span class="tag ok">成功</span></td>
+                </tr>
+                <tr>
+                  <td>GDELT 手动采集</td>
+                  <td>食品安全</td>
+                  <td>0</td>
+                  <td><span class="tag warn">运行中</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel wide">
+          <div class="panel-header">
+            <div class="panel-title">智能体执行链路</div>
+            <span class="muted">agent_execution_log</span>
+          </div>
+          <div class="panel-body">
+            <div class="steps">
+              <div class="step">
+                <strong>声明拆解</strong>
+                <span class="muted">claim_splitter</span>
+                <br>
+                <span class="tag ok">成功</span>
+              </div>
+              <div class="step">
+                <strong>查询生成</strong>
+                <span class="muted">query_generator</span>
+                <br>
+                <span class="tag ok">成功</span>
+              </div>
+              <div class="step">
+                <strong>证据检索</strong>
+                <span class="muted">evidence_seeker</span>
+                <br>
+                <span class="tag warn">较慢</span>
+              </div>
+              <div class="step">
+                <strong>真实性判断</strong>
+                <span class="muted">verdict_predictor</span>
+                <br>
+                <span class="tag ok">成功</span>
+              </div>
+              <div class="step">
+                <strong>报告生成</strong>
+                <span class="muted">report_generator</span>
+                <br>
+                <span class="tag ok">成功</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel wide">
+          <div class="panel-header">
+            <div class="panel-title">智能体日志与异常记录</div>
+            <span class="muted">用于排查核查失败原因</span>
+          </div>
+          <div class="panel-body">
+            <div class="log-list">
+              <div class="log-item">
+                <strong>task-20260616-001</strong>
+                <span>evidence_seeker 检索到 5 条候选证据，2 条被判定为高可信。</span>
+                <span class="tag ok">成功</span>
+                <span class="muted">2300ms</span>
+              </div>
+              <div class="log-item">
+                <strong>task-20260616-002</strong>
+                <span>verdict_predictor 根据支持证据和反驳证据生成最终结论。</span>
+                <span class="tag ok">成功</span>
+                <span class="muted">1800ms</span>
+              </div>
+              <div class="log-item">
+                <strong>task-20260616-003</strong>
+                <span>Serper 搜索接口超时，系统已记录错误并允许用户稍后重试。</span>
+                <span class="tag bad">失败</span>
+                <span class="muted">10000ms</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
