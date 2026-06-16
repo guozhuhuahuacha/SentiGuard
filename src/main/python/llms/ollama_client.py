@@ -5,7 +5,7 @@ import ollama
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_ollama import ChatOllama
 
-from src.llms.base import BaseLLM, LLMProvider
+from src.main.python.llms.base import BaseLLM, LLMProvider
 
 
 class OllamaLLM(BaseLLM):

@@ -72,7 +72,7 @@ FactAgent/
 ### Basic Usage
 
 ```python
-from src.main_agent import FactAgent
+from src.main.python.main_agent import FactAgent
 
 # Initialize the agent
 agent = FactAgent(dataset="fever")

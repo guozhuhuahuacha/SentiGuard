@@ -5,7 +5,7 @@ from typing import Dict
 
 from sklearn.metrics import classification_report
 
-from src.llms import invoke_with_json
+from src.main.python.llms import invoke_with_json
 
 LABEL_MAP = {
     "SUPPORTS": "supported",

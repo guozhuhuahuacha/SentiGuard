@@ -2,13 +2,12 @@
 给一系列真实和虚假的claim，测试其事实核查能力！
 """
 import json
-import traceback
 import re
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from src.main_agent import FactAgent
+from src.main.python.main_agent import FactAgent
 
 
 # 测试用例：生活中常见的误区和事实
@@ -227,7 +226,7 @@ def run_all_tests(model_name="doubao/doubao-seed-2-0-mini-260428"):
         print(f"  {i+1:<3} {r['category']:<10} {r['expected']:<14} {act:<14} {status:<6}")
 
     # 保存详细结果
-    with open("test_results.json", "w", encoding="utf-8") as f:
+    with open("../../../test_results.json", "w", encoding="utf-8") as f:
         json.dump(all_results, f, ensure_ascii=False, indent=2)
     print(f"\n详细结果已保存到: test_results.json")
 

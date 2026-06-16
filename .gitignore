@@ -44,4 +44,5 @@ Thumbs.db
 result/
 eval/
 test_results.json
-verify.py
+src/test/python/verify.py
+debug.log

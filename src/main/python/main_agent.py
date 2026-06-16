@@ -1,7 +1,6 @@
 import json
-import os
 import re
-from typing import Literal, Optional, Dict
+from typing import Optional, Dict
 
 from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, MessagesState, START, END
@@ -9,17 +8,17 @@ from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command
 from dotenv import load_dotenv
 
-from src.llms import create_chat_model
-from src.llms.base import LLMProvider, detect_provider
-from src.prompts.input_ingestion import (
+from src.main.python.llms import create_chat_model
+from src.main.python.llms.base import detect_provider
+from src.main.python.prompts.input_ingestion import (
     claim_decomposition_prompt, claim_decomposition,
     claim_classification_prompt, claim_classification,
     claim_splitter_prompt, claim_splitting
 )
-from src.prompts.query_generation import query_generation_prompt, query_generation
-from src.prompts.evidence_seeking import evidence_seeking_prompt, evidence_seeking
-from src.prompts.verdict_prediction import verdict_prediction_prompt, verdict_prediction
-from src.tools.retrieve import search_retrieve_news
+from src.main.python.prompts.query_generation import query_generation_prompt, query_generation
+from src.main.python.prompts.evidence_seeking import evidence_seeking_prompt, evidence_seeking
+from src.main.python.prompts.verdict_prediction import verdict_prediction_prompt, verdict_prediction
+from src.main.python.tools.retrieve import search_retrieve_news
 
 load_dotenv()
 

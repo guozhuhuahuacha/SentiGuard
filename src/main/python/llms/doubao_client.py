@@ -4,11 +4,11 @@ import re
 from typing import Any, Dict, Optional, List
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
+from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI as LangChainChatOpenAI
 from openai import OpenAI
 
-from src.llms.base import BaseLLM, LLMProvider
+from src.main.python.llms.base import BaseLLM, LLMProvider
 
 
 # 豆包（字节跳动/火山引擎方舟）默认接入点

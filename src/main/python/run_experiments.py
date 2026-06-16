@@ -1,8 +1,9 @@
 import os
 import json
 from tqdm import tqdm
-from src.main_agent import FactAgent
-from src.experiments import cot, direct, folk, sase
+from src.main.python.main_agent import FactAgent
+from src.main.python.experiments import sase, cot, folk, direct
+
 
 def sanitize_model_name(model):
     return model.replace("/", "__").replace(":", "-")

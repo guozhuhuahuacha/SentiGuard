@@ -95,18 +95,18 @@ def get_llm_provider(model_name: str, provider: Optional[str] = None,
     provider = (provider or detect_provider(model_name)).lower()
 
     if provider == LLMProvider.OPENAI:
-        from src.llms.openai_client import OpenAILLM
+        from src.main.python.llms.openai_client import OpenAILLM
         return OpenAILLM(model_name=model_name, api_key=api_key,
                          base_url=base_url, temperature=temperature, **kwargs)
 
     if provider == LLMProvider.OLLAMA:
-        from src.llms.ollama_client import OllamaLLM
+        from src.main.python.llms.ollama_client import OllamaLLM
         # Ollama 不需要 api_key / base_url，走本地服务
         raw_model = model_name.replace("ollama/", "", 1) if model_name.lower().startswith("ollama/") else model_name
         return OllamaLLM(model_name=raw_model, temperature=temperature, **kwargs)
 
     if provider == LLMProvider.DOUBAO:
-        from src.llms.doubao_client import DoubaoLLM
+        from src.main.python.llms.doubao_client import DoubaoLLM
         raw_model = model_name.replace("doubao/", "", 1) if model_name.lower().startswith("doubao/") else model_name
         return DoubaoLLM(model_name=raw_model, api_key=api_key,
                          base_url=base_url, temperature=temperature, **kwargs)

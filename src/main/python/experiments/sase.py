@@ -1,7 +1,7 @@
 import json
 
-from src.llms import invoke_with_json
-from src.utils import google_top_snippet
+from src.main.python.llms import invoke_with_json
+from src.main.python.utils import google_top_snippet
 
 
 def self_ask(model, data):
