@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>热点挖掘与事实查验</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', 'Arial', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 220px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        
+        .sidebar-title {
+            text-align: center;
+            padding: 20px 0;
+            font-size: 20px;
+            border-bottom: 1px solid #34495e;
+            margin-bottom: 20px;
+        }
+        
+        .nav-section {
+            margin-bottom: 30px;
+        }
+        
+        .nav-section-title {
+            padding: 10px 20px;
+            font-size: 14px;
+            color: #95a5a6;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .nav-item:hover {
+            background: #34495e;
+        }
+        
+        .nav-item.active {
+            background: #3498db;
+        }
+        
+        .nav-item i {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        /* 主内容区域样式 */
+        .main-content {
+            flex: 1;
+            margin-left: 220px;
+            padding: 30px;
+        }
+        
+        .page {
+            display: none;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        .module {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .module-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        /* 热点挖掘样式 */
+        .hotspot-list {
+            margin-bottom: 20px;
+        }
+        
+        .hotspot-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+        
+        .hotspot-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .hotspot-rank {
+            font-weight: bold;
+            font-size: 18px;
+            width: 40px;
+            text-align: center;
+        }
+        
+        .hotspot-name {
+            flex: 1;
+            font-size: 16px;
+            margin: 0 15px;
+        }
+        
+        .hotspot-discussion {
+            width: 80px;
+            text-align: right;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .hotspot-sentiment {
+            width: 80px;
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .positive {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .negative {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .neutral {
+            background-color: #fff8e1;
+            color: #f57f17;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .pagination button {
+            margin: 0 5px;
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .pagination button:hover {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .pagination button.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        /* 事实查验样式 */
+        .fact-check-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .fact-check-form input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .fact-check-form button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        
+        .fact-check-form button:hover {
+            background: #2980b9;
+        }
+        
+        .fact-check-result {
+            margin-top: 20px;
+        }
+        
+        .result-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+        
+        .result-section h3 {
+            margin-bottom: 12px;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        .result-section p {
+            font-size: 15px;
+            color: #555;
+            line-height: 1.8;
+            text-indent: 2em;
+        }
+        
+        .result-section .status {
+            font-weight: bold;
+            font-size: 20px;
+            margin-bottom: 10px;
+            text-indent: 0;
+        }
+        
+        .status.true {
+            color: #2e7d32;
+        }
+        
+        .status.false {
+            color: #c62828;
+        }
+        
+        .status.unknown {
+            color: #f57f17;
+        }
+        
+        /* 历史记录页面样式 */
+        .history-list-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .history-list-item span {
+            color: #888;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+            
+            .hotspot-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .hotspot-rank, .hotspot-sentiment {
+                width: 100%;
+                text-align: left;
+                margin: 5px 0;
+            }
+            
+            .fact-check-form {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+        <div class="sidebar-title">功能导航</div>
+        
+        <!-- 主要功能导航 -->
+        <div class="nav-section">
+            <div class="nav-section-title">主要功能</div>
+            <div class="nav-item active" onclick="switchPage('hotspot', this)">
+                🔥 热点挖掘
+            </div>
+            <div class="nav-item" onclick="switchPage('fact', this)">
+                ✅ 事实核验
+            </div>
+        </div>
+        
+        <!-- 历史记录 -->
+        <div class="nav-section">
+            <div class="nav-section-title">历史记录</div>
+            <div class="nav-item" onclick="switchPage('history', this)">
+                📋 查验历史
+            </div>
+        </div>
+    </div>
+    
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 热点挖掘页面 -->
+        <div class="page active" id="hotspot-page">
+            <h1>热点挖掘</h1>
+            <div class="module">
+                <h2 class="module-title">热点列表</h2>
+                <div class="hotspot-list" id="hotspotList">
+                    <!-- 热点数据将通过JavaScript动态生成 -->
+                </div>
+                <div class="pagination" id="pagination">
+                    <!-- 分页按钮将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 事实核验页面 -->
+        <div class="page" id="fact-page">
+            <h1>事实核验</h1>
+            <div class="module">
+                <h2 class="module-title">输入查验内容</h2>
+                <div class="fact-check-form">
+                    <input type="text" id="factInput" value="北大鹅腿阿姨事件">
+                    <button>分析</button>
+                </div>
+                
+                <div class="fact-check-result" id="factResult" style="display: block;">
+                    <div class="result-section">
+                        <h3>结论</h3>
+                        <div class="status false">经核实：存在严重造假行为</div>
+                    </div>
+                    <div class="result-section">
+                        <h3>详细分析与证据</h3>
+                        <p>经多方权威机构及实地查证，网传“北大鹅腿阿姨”事件中涉及的肉制品存在严重造假行为，情况属实。通过交叉比对消费者提供的实物证据与现场取样检测结果，发现其所售所谓的“鹅腿”实为其他廉价禽类制品替代。</p>
+                        <p>具体而言，多名消费者反映及拍摄的影像资料显示，部分提供的“鸭腿”出现异常发绿现象。经食品安全专家在同等储存条件下进行对照实验，发现正常新鲜鸭腿无法复现此类发绿特征，该现象高度疑似变质或使用非法添加剂处理所致。</p>
+                        <p>综合多位专家的鉴定意见及监管部门的初步抽检报告，确认该涉事主体存在以次充好、销售劣质假冒食品的违规事实。目前，相关线索及证据已移交市场监督管理部门作进一步立案查处。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 历史记录页面 -->
+        <div class="page" id="history-page">
+            <h1>历史记录</h1>
+            <div class="module">
+                <h2 class="module-title">查验历史</h2>
+                <div>
+                    <div class="history-list-item">北大鹅腿阿姨事件 <span>2024-06-16 10:30 - 证实造假</span></div>
+                    <div class="history-list-item">人工智能技术突破 <span>2024-06-15 14:30 - 已核实</span></div>
+                    <div class="history-list-item">气候变化影响加剧 <span>2024-06-15 13:15 - 已核实</span></div>
+                    <div class="history-list-item">全球经济复苏趋势 <span>2024-06-15 11:45 - 已核实</span></div>
+                    <div class="history-list-item">教育改革新政策 <span>2024-06-14 16:20 - 已核实</span></div>
+                    <div class="history-list-item">医疗健康问题讨论 <span>2024-06-14 10:30 - 已核实</span></div>
+                    <div class="history-list-item">科技创新发展 <span>2024-06-13 15:45 - 已核实</span></div>
+                    <div class="history-list-item">环境保护措施 <span>2024-06-13 09:20 - 已核实</span></div>
+                    <div class="history-list-item">就业市场变化 <span>2024-06-12 14:10 - 已核实</span></div>
+                    <div class="history-list-item">文化产业发展 <span>2024-06-12 11:30 - 已核实</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟30条热点数据
+        const hotspots = [
+            { rank: 1, name: "人工智能技术突破", discussion: 95, sentiment: "positive" },
+            { rank: 2, name: "气候变化影响加剧", discussion: 88, sentiment: "negative" },
+            { rank: 3, name: "全球经济复苏趋势", discussion: 82, sentiment: "positive" },
+            { rank: 4, name: "教育改革新政策", discussion: 75, sentiment: "neutral" },
+            { rank: 5, name: "医疗健康问题讨论", discussion: 70, sentiment: "negative" },
+            { rank: 6, name: "科技创新发展", discussion: 68, sentiment: "positive" },
+            { rank: 7, name: "环境保护措施", discussion: 65, sentiment: "positive" },
+            { rank: 8, name: "就业市场变化", discussion: 60, sentiment: "negative" },
+            { rank: 9, name: "文化产业发展", discussion: 55, sentiment: "neutral" },
+            { rank: 10, name: "社会公平问题", discussion: 50, sentiment: "negative" },
+            { rank: 11, name: "数字化转型", discussion: 48, sentiment: "positive" },
+            { rank: 12, name: "能源危机应对", discussion: 45, sentiment: "negative" },
+            { rank: 13, name: "数字隐私保护", discussion: 42, sentiment: "neutral" },
+            { rank: 14, name: "国际贸易关系", discussion: 40, sentiment: "negative" },
+            { rank: 15, name: "科技创新应用", discussion: 38, sentiment: "positive" },
+            { rank: 16, name: "城市交通规划", discussion: 36, sentiment: "neutral" },
+            { rank: 17, name: "食品安全监管", discussion: 34, sentiment: "negative" },
+            { rank: 18, name: "乡村振兴战略", discussion: 32, sentiment: "positive" },
+            { rank: 19, name: "新能源汽车普及", discussion: 30, sentiment: "positive" },
+            { rank: 20, name: "航天探索新进展", discussion: 28, sentiment: "positive" },
+            { rank: 21, name: "网络安全威胁", discussion: 26, sentiment: "negative" },
+            { rank: 22, name: "养老服务体系", discussion: 24, sentiment: "neutral" },
+            { rank: 23, name: "人工智能伦理", discussion: 22, sentiment: "neutral" },
+            { rank: 24, name: "全球疫情后续", discussion: 20, sentiment: "negative" },
+            { rank: 25, name: "金融市场波动", discussion: 18, sentiment: "negative" },
+            { rank: 26, name: "体育赛事热点", discussion: 16, sentiment: "positive" },
+            { rank: 27, name: "娱乐行业动态", discussion: 14, sentiment: "neutral" },
+            { rank: 28, name: "人口结构变化", discussion: 12, sentiment: "neutral" },
+            { rank: 29, name: "极端天气预警", discussion: 10, sentiment: "negative" },
+            { rank: 30, name: "绿色低碳生活", discussion: 8, sentiment: "positive" }
+        ];
+
+        // 分页配置
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        const totalPages = Math.ceil(hotspots.length / itemsPerPage);
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            renderHotspots();
+            renderPagination();
+        });
+
+        // 切换页面
+        function switchPage(pageName, element) {
+            // 更新导航项状态
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            // 切换页面显示
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageName + '-page').classList.add('active');
+        }
+
+        // 渲染热点列表
+        function renderHotspots() {
+            const listElement = document.getElementById('hotspotList');
+            listElement.innerHTML = '';
+            
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentHotspots = hotspots.slice(startIndex, endIndex);
+            
+            currentHotspots.forEach(hotspot => {
+                const item = document.createElement('div');
+                item.className = 'hotspot-item';
+                
+                const sentimentClass = hotspot.sentiment;
+                const sentimentText = {
+                    'positive': '正面',
+                    'negative': '负面',
+                    'neutral': '中性'
+                }[hotspot.sentiment];
+                
+                item.innerHTML = `
+                    <div class="hotspot-rank">${hotspot.rank}</div>
+                    <div class="hotspot-name">${hotspot.name}</div>
+                    <div class="hotspot-discussion">${hotspot.discussion}%</div>
+                    <div class="hotspot-sentiment ${sentimentClass}">${sentimentText}</div>
+                `;
+                
+                listElement.appendChild(item);
+            });
+        }
+
+        // 渲染分页
+        function renderPagination() {
+            const paginationElement = document.getElementById('pagination');
+            paginationElement.innerHTML = '';
+            
+            for (let i = 1; i <= totalPages; i++) {
+                const button = document.createElement('button');
+                button.textContent = i;
+                button.className = i === currentPage ? 'active' : '';
+                button.onclick = function() {
+                    currentPage = i;
+                    renderHotspots();
+                    renderPagination();
+                };
+                paginationElement.appendChild(button);
+            }
+        }
+    </script>
+</body>
+</html>
