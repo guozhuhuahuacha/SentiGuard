@@ -24,6 +24,7 @@ load_dotenv()
 
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+ANSPIRE_API_KEY = os.getenv("ANSPIRE_API_KEY")
 
 # Load media bias data
 _MEDIA_BIAS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "media_bias_data.json")
@@ -44,7 +45,7 @@ GEMINI_MODEL = genai.GenerativeModel("gemini-1.5-flash", generation_config=genai
 class SearchEngineRetriever:
     def __init__(self, dataset: str, headless: bool = True):
         self.skip_query_token = None
-        self.server_address = "https://google.serper.dev/search"
+        self.server_address = "https://plugin.anspire.cn/api/ntsearch/search"
         self.dataset = dataset
         # Initialize Selenium WebDriver
         options = webdriver.ChromeOptions()
@@ -63,12 +64,55 @@ class SearchEngineRetriever:
 
 
     def _query_search_server(self, query_term):
+        # 使用 Anspire 搜索引擎
+        if ANSPIRE_API_KEY:
+            try:
+                # Anspire API
+                api_endpoint = "https://plugin.anspire.cn/api/ntsearch/search"
+                params = {
+                    "query": query_term,
+                    "top_k": 10,
+                }
+                headers = {
+                    "Authorization": f"Bearer {ANSPIRE_API_KEY}",
+                    "Content-Type": "application/json",
+                }
+                response = requests.get(api_endpoint, params=params, headers=headers, timeout=30)
+                if response.status_code == 200:
+                    data = response.json()
+                    print(f"🔍 Anspire 搜索结果: {json.dumps(data, ensure_ascii=False)[:500]}...")
+
+                    # 尝试解析 Anspire 的响应格式
+                    # 先尝试多种可能的字段
+                    items = []
+                    for key in ["results", "items", "data", "list"]:
+                        if key in data and isinstance(data[key], list):
+                            items = data[key]
+                            break
+
+                    # 如果没有找到列表，尝试整个响应是否是列表
+                    if not items and isinstance(data, list):
+                        items = data
+
+                    # 转换为 Serper 格式的 organic 结果
+                    organic_results = []
+                    for item in items:
+                        organic_results.append({
+                            "title": item.get("title", item.get("name", "")),
+                            "link": item.get("url", item.get("href", "")),
+                            "snippet": item.get("snippet", item.get("content", "")),
+                        })
+                    return organic_results
+            except Exception as e:
+                logging.error(f"Anspire search failed: {e}")
+
+        # 如果 Anspire 不可用，回退到 Serper
+        logging.warning("Anspire not available, trying Serper...")
         payload = json.dumps({"q": query_term, "num": 10, "tbs": f"cdr:1,cd_min:,cd_max:{DATASET_DATE_LIMITS.get(self.dataset, '')}"})
         headers = {
             'X-API-KEY': SERPER_API_KEY,
             'Content-Type': 'application/json'
         }
-
         response = requests.post(self.server_address, headers=headers, data=payload)
         resp_status = response.status_code
         if resp_status == 200:
@@ -77,7 +121,7 @@ class SearchEngineRetriever:
                 return res.get('organic', [])  # Return empty list if 'organic' key is missing
             except json.JSONDecodeError:
                 logging.error('Failed to parse JSON response from search server.')
-           
+
         logging.error('All API keys exhausted. No results retrieved.')
         return [] # Return empty list if all keys are exhausted
 
