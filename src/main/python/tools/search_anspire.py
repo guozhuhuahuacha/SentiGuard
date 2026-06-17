@@ -26,7 +26,7 @@ class AnspireSearchEngine(BaseSearchEngine):
 
     配置项（在 config 中或环境变量中设置）:
         - api_key: Anspire API Key (环境变量: ANSPIRE_API_KEY)
-        - base_url: Anspire API 地址 (环境变量: ANSPIRE_BASE_URL, 默认: https://api.anspire.com/v1)
+        - base_url: Anspire API 地址 (环境变量: ANSPIRE_BASE_URL, 默认: https://plugin.anspire.cn/api/ntsearch)
         - timeout: 请求超时时间（秒）
     """
 
@@ -35,7 +35,7 @@ class AnspireSearchEngine(BaseSearchEngine):
     ENV_BASE_URL = "ANSPIRE_BASE_URL"
 
     # 默认配置
-    DEFAULT_BASE_URL = "https://api.anspire.com/v1"
+    DEFAULT_BASE_URL = "https://plugin.anspire.cn/api/ntsearch"
     DEFAULT_TIMEOUT = 30
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -72,23 +72,25 @@ class AnspireSearchEngine(BaseSearchEngine):
             return []
 
         try:
-            # 构建 API 请求
+            # 构建 API 请求（使用 GET 方式）
             api_endpoint = f"{self.base_url.rstrip('/')}/search"
 
-            payload = {
+            # 构建查询参数
+            params = {
                 "query": query,
-                "num_results": num_results,
+                "top_k": num_results,
             }
 
             headers = {
-                "X-API-KEY": self.api_key,
+                "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
+                "Accept": "*/*",
             }
 
-            # 发送请求
-            response = requests.post(
+            # 发送 GET 请求
+            response = requests.get(
                 api_endpoint,
-                json=payload,
+                params=params,
                 headers=headers,
                 timeout=self.timeout,
             )
@@ -122,31 +124,35 @@ class AnspireSearchEngine(BaseSearchEngine):
             return []
 
         try:
-            # 构建 API 请求
+            # 构建 API 请求（使用 GET 方式）
             api_endpoint = f"{self.base_url.rstrip('/')}/search"
 
-            payload = {
+            # 构建查询参数
+            params = {
                 "query": search_query.query,
-                "num_results": search_query.num_results,
+                "top_k": search_query.num_results,
             }
 
             # 添加可选参数
             if search_query.language:
-                payload["language"] = search_query.language
-            if search_query.region:
-                payload["region"] = search_query.region
+                params["Insite"] = search_query.language
             if search_query.time_range:
-                payload["time_range"] = search_query.time_range
+                # 解析时间范围
+                if "," in search_query.time_range:
+                    from_time, to_time = search_query.time_range.split(",", 1)
+                    params["FromTime"] = from_time.strip()
+                    params["ToTime"] = to_time.strip()
 
             headers = {
-                "X-API-KEY": self.api_key,
+                "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
+                "Accept": "*/*",
             }
 
-            # 发送请求
-            response = requests.post(
+            # 发送 GET 请求
+            response = requests.get(
                 api_endpoint,
-                json=payload,
+                params=params,
                 headers=headers,
                 timeout=self.timeout,
             )
@@ -156,6 +162,7 @@ class AnspireSearchEngine(BaseSearchEngine):
                 return self._parse_response(data)
             else:
                 print(f"⚠️  Anspire API 错误: {response.status_code}")
+                print(f"   {response.text}")
                 return []
 
         except Exception as e:
@@ -221,25 +228,32 @@ class AnspireSearchEngine(BaseSearchEngine):
 
         Returns:
             搜索结果列表
-
-        注意: 根据 Anspire API 的实际响应格式调整解析逻辑
         """
         results = []
 
-        # 根据 Anspire 的响应格式解析
-        # 这里假设响应格式为 {"results": [...]}
-        # 请根据实际的 Anspire API 文档调整
-        items = data.get("results", data.get("items", []))
+        # 调试：打印原始响应
+        print(f"🔍 Anspire 响应数据: {json.dumps(data, ensure_ascii=False, indent=2)[:500]}...")
+
+        # 尝试多种可能的字段名
+        items = []
+        for key in ["results", "items", "data", "list"]:
+            if key in data and isinstance(data[key], list):
+                items = data[key]
+                break
+
+        # 如果没有找到列表，尝试整个响应是否是列表
+        if not items and isinstance(data, list):
+            items = data
 
         for item in items:
-            # 根据 Anspire 的实际字段名解析
+            # 尝试多种可能的字段名
             result = SearchResult(
-                title=item.get("title", ""),
-                url=item.get("url", item.get("link", "")),
-                snippet=item.get("snippet", item.get("description", "")),
-                source=item.get("source", item.get("domain", None)),
-                published_date=item.get("published_date", item.get("date", None)),
-                score=item.get("score", item.get("relevance", None)),
+                title=item.get("title", item.get("name", "")),
+                url=item.get("url", item.get("link", item.get("href", ""))),
+                snippet=item.get("snippet", item.get("description", item.get("content", ""))),
+                source=item.get("source", item.get("domain", item.get("site", None))),
+                published_date=item.get("published_date", item.get("date", item.get("time", None))),
+                score=item.get("score", item.get("relevance", item.get("rank", None))),
             )
             results.append(result)
 

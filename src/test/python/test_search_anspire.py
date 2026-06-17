@@ -45,8 +45,7 @@ def test_anspire_search():
 
     # 4. 测试搜索
     test_queries = [
-        "Python 编程入门",
-        "人工智能 最新发展",
+        "中国",
     ]
 
     for query in test_queries:
