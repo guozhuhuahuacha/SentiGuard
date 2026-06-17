@@ -4,6 +4,7 @@
 requests>=2.31
 datasets>=2.14
 pandas>=2.0
+feedparser>=6.0
 
 # Stage 2: BERTopic + Chinese NLP
 bertopic>=0.16
