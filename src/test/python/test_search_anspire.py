@@ -19,6 +19,8 @@ def test_anspire_search():
     print("Anspire 搜索引擎测试")
     print("=" * 60)
 
+    # 先导入工具模块以注册搜索引擎
+    from src.main.python.tools import search_anspire
     from src.main.python.tools.search_base import get_search_engine, list_search_engines
 
     # 1. 检查可用的搜索引擎
