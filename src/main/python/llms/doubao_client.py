@@ -52,7 +52,21 @@ class DoubaoLLM(BaseLLM):
 
     def _build_client(self):
         """构建 OpenAI 兼容客户端，指向火山引擎方舟接口。"""
-        return OpenAI(api_key=self.api_key, base_url=self.base_url)
+        # 添加更好的连接配置，处理 SSL 问题
+        import httpx
+
+        # 创建自定义 httpx 客户端，增加超时和 SSL 配置
+        http_client = httpx.Client(
+            timeout=60.0,  # 增加超时时间
+            verify=True,   # 默认保持 SSL 验证
+        )
+
+        return OpenAI(
+            api_key=self.api_key,
+            base_url=self.base_url,
+            http_client=http_client,
+            timeout=60.0,
+        )
 
     def chat(self, prompt: str, system_prompt: Optional[str] = None, **kwargs: Any) -> str:
         messages: list = []
@@ -142,6 +156,7 @@ class DoubaoLLM(BaseLLM):
             api_key=self.api_key,
             base_url=self.base_url,
             temperature=self.temperature,
+            timeout=60.0,
         )
 
 
