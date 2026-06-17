@@ -459,19 +459,114 @@
 
 ---
 
+### 条目 #22 — GDELT数据源连接测试
+
+- **日期**：2026-06-17
+- **场景**：代码理解 / 连接测试 / 数据源验证
+- **关键 Prompt**：
+  > "再试一试能不能连接到gdelt"
+- **AI 产出**：
+  - 查看现有GDELT客户端代码 `hot_topic/data_source/gdelt_client.py`
+  - 了解其配置：API端点、5秒请求间隔、重试机制、最大250条/次
+  - 尝试连接，成功访问api.gdeltproject.org
+  - 但返回HTTP 429（速率限制），说明IP被临时限流
+  - 确认代码实现正确，只是需要等待限流解除
+- **人工修改**：无
+- **风险控制**：
+  - 先测试网站连通性再调用API
+  - 记录429状态，避免重试轰炸
+  - 提示用户"等待一段时间或更换IP"
+- **价值**：确认GDELT客户端代码可用，为后续数据采集做好准备
+
+---
+
+### 条目 #23 — Git协作流程指导
+
+- **日期**：2026-06-17
+- **场景**：版本控制 / 团队协作
+- **关键 Prompt**：
+  > "现在其他同学在后端代码（我不负责）做了修改在git，我需要先暂存代码，同步一下再上传吗？"
+- **AI 产出**：
+  - 先检查`git status`，确认本地修改状态
+  - 尝试`git fetch`看远程更新（遇到网络问题，但流程正确）
+  - 提供标准Git协作流程：
+    - 方案A：先commit本地 → pull --rebase → push
+    - 方案B：git stash → pull → stash pop
+  - 选择方案A完成操作，成功commit并rebase
+- **人工修改**：选择方案A（先commit本地）
+- **风险控制**：
+  - 先`git status`了解现状再操作
+  - 使用`--rebase`避免产生merge commit
+  - 不使用`--force`等破坏性操作
+- **价值**：成功完成Git协作流程，同步远程并推送本地更改
+
+---
+
+### 条目 #24 — RSS数据源开发与集成
+
+- **日期**：2026-06-17
+- **场景**：代码生成 / 数据源扩展 / 测试验证
+- **关键 Prompt**：
+  > "现在试一下RSS新闻源看看能不能用"
+- **AI 产出**：
+  - 创建`hot_topic/data_source/rss_client.py`：
+    - 基于feedparser库
+    - 支持RSS/Atom格式
+    - 自动语言检测（中/英文，URL识别+内容检测）
+    - 输出与GDELT统一的schema
+  - 更新`data_source/__init__.py`导出RSSClient
+  - 更新`requirements.txt`加入feedparser
+  - 创建测试脚本验证，成功获取BBC新闻
+- **人工修改**：
+  - 发现语言检测小bug（BBC英文被识别为中文），要求修复
+  - 修复后重新测试，语言检测正常
+- **风险控制**：
+  - 先测试单个feed再批量
+  - 日志记录每个feed的获取状态
+  - 异常处理避免单个feed失败影响整体
+- **价值**：新增RSS数据源，补充GDELT的限制，提供更稳定的新闻来源
+
+---
+
+### 条目 #25 — 24小时新闻获取程序开发
+
+- **日期**：2026-06-17
+- **场景**：代码生成 / 业务功能 / 数据采集
+- **关键 Prompt**：
+  > "好的这个小的测试demo可以删除或者移动到test，现在我需要你做一个程序可以直接获得近24小时的所有新闻，主要就是标题以及时间，最好还有来源，储存起来，可以是csv"
+- **AI 产出**：
+  - 整理测试文件到`hot_topic/tests/`目录
+  - 创建`hot_topic/scripts/fetch_recent_news.py`：
+    - 整合RSS + GDELT双数据源（可配置开关）
+    - 支持自定义小时数（--hours）
+    - CSV输出包含：title、publish_time、source、url、lang、category、content
+    - 自动时间戳命名：news_YYYYMMDD_HHMMSS.csv
+    - 完整日志记录
+  - 实际运行测试，成功获取59条新闻并保存
+- **人工修改**：要求先跳过GDELT（由于429限制）
+- **风险控制**：
+  - 每个数据源独立try/catch，单个失败不影响整体
+  - 使用merge_sources去重
+  - 输出到data/hot_topic/统一管理
+- **价值**：提供一键采集新闻的工具，CSV格式方便后续处理
+
+---
+
 ## 阶段性统计（自动维护，每次新增条目时更新）
 
 | 项 | 值 |
 |----|----|
-| 累计条目数 | 21 |
-| 涉及场景类别 | 代码理解、需求分析、接口设计、代码生成、文档撰写、算法理解、知识 Q&A、版本控制、字段精简、文档代码同步、架构调整、验证测试、交付总结 |
-| 已生成代码文件 | 14（api/*7 + hot_topic/scripts/train_thucnews_improved.py + train_thucnews_simple.py + topic_model_config.py + topic_model_trainer.py + example_usage.py + 原hot_topic模块） |
-| 新增核心文件 | 4（topic_model_config.py、topic_model_trainer.py、example_usage.py、train_thucnews_improved.py） |
+| 累计条目数 | 25 |
+| 涉及场景类别 | 代码理解、需求分析、接口设计、代码生成、文档撰写、算法理解、知识 Q&A、版本控制、字段精简、文档代码同步、架构调整、验证测试、交付总结、数据源验证、团队协作、数据源扩展、业务功能、数据采集 |
+| 已生成代码文件 | 18（api/*7 + hot_topic/scripts/train_thucnews_improved.py + train_thucnews_simple.py + topic_model_config.py + topic_model_trainer.py + example_usage.py + hot_topic/data_source/rss_client.py + hot_topic/scripts/fetch_recent_news.py + 原hot_topic模块） |
+| 新增核心文件 | 6（topic_model_config.py、topic_model_trainer.py、example_usage.py、train_thucnews_improved.py、rss_client.py、fetch_recent_news.py） |
 | 已生成文档文件 | 5（docs/api/internal-api.md、docs/AI_COLLAB_LOG.md、hot_topic/TRAINING_GUIDE.md、README_PYTHON_API.md、THUCNEWS_BERTOPIC_README.md） |
-| Git 提交次数 | 1（commit 67eaabd） |
-| 人工干预次数 | ≥ 6（范围收敛、字段精简×2、算法质疑、提交把关、任务书排除） |
+| Git 提交次数 | 4（67eaabd → a3284db → b8e8a8a） |
+| 人工干预次数 | ≥ 8（范围收敛、字段精简×2、算法质疑、提交把关、任务书排除、语言检测修复、GDELT跳过） |
 | 训练阶段完成 | small预设测试训练完成 |
 | 支持主题数 | 默认50个，可配置 |
+| 数据源支持 | GDELT、RSS、THUCNews |
+| CSV采集功能 | ✓ 已完成，可一键获取24小时新闻 |
 
 ---
 
