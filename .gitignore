@@ -46,6 +46,10 @@ eval/
 test_results.json
 src/test/python/verify.py
 debug.log
+data/hot_topic/
+simple_gdelt_test.py
+test_rss.py
+show_rss_news.py
 
 # Personal reference docs (not for repo)
 *.doc
