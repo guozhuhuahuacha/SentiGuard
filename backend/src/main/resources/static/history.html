@@ -1247,10 +1247,24 @@
     let currentDetail = null;
 
     async function requestJson(url, options = {}) {
+      const token = localStorage.getItem('sg_token');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
       const response = await fetch(url, {
-        headers: { 'Content-Type': 'application/json' },
-        ...options
+        ...options,
+        headers
       });
+      if (response.status === 401) {
+        localStorage.removeItem('sg_token');
+        localStorage.removeItem('sg_token_type');
+        window.location.href = '/login.html';
+        throw new Error('请先登录');
+      }
       const body = await response.json();
       if (!response.ok || (body.code && body.code >= 400)) {
         throw new Error(body.message || '请求失败');

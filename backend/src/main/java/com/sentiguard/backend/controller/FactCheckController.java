@@ -18,7 +18,9 @@ import com.sentiguard.backend.common.PageResult;
 import com.sentiguard.backend.common.Result;
 import com.sentiguard.backend.dto.FactCheckAnalyzeDTO;
 import com.sentiguard.backend.dto.HistoryQueryDTO;
+import com.sentiguard.backend.entity.User;
 import com.sentiguard.backend.service.FactCheckService;
+import com.sentiguard.backend.service.UserService;
 import com.sentiguard.backend.vo.FactCheckDetailVO;
 import com.sentiguard.backend.vo.HistoryVO;
 
@@ -27,13 +29,17 @@ import com.sentiguard.backend.vo.HistoryVO;
 public class FactCheckController {
 
     private final FactCheckService factCheckService;
+    private final UserService userService;
 
-    public FactCheckController(FactCheckService factCheckService) {
+    public FactCheckController(FactCheckService factCheckService, UserService userService) {
         this.factCheckService = factCheckService;
+        this.userService = userService;
     }
 
     @PostMapping("/analyze")
     public Result<FactCheckDetailVO> analyze(@Valid @RequestBody FactCheckAnalyzeDTO dto) {
+        User currentUser = userService.getCurrentUser();
+        dto.setUserId(currentUser.getId());
         return Result.ok(factCheckService.analyze(dto));
     }
 
@@ -55,8 +61,9 @@ public class FactCheckController {
                                                     LocalDateTime endTime,
                                                     @RequestParam(defaultValue = "1") Integer pageNum,
                                                     @RequestParam(defaultValue = "10") Integer pageSize) {
+        User currentUser = userService.getCurrentUser();
         HistoryQueryDTO query = new HistoryQueryDTO();
-        query.setUserId(userId);
+        query.setUserId(currentUser.getId());
         query.setKeyword(keyword);
         query.setResultLabel(resultLabel);
         query.setTaskStatus(taskStatus);
