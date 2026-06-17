@@ -22,9 +22,7 @@ from datetime import datetime
 import google.generativeai as genai
 load_dotenv()
 
-SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-ANSPIRE_API_KEY = os.getenv("ANSPIRE_API_KEY")
 
 # Load media bias data
 _MEDIA_BIAS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "media_bias_data.json")
@@ -35,7 +33,7 @@ with open(_MEDIA_BIAS_PATH, "r", encoding="utf-8") as file:
 MEDIA_BIAS_DICT = {entry.get("url"): entry for entry in MEDIA_DATA}
 DATASET_DATE_LIMITS = {
         "feverous": "10/12/2021",
-        "hover": "11/16/2020", 
+        "hover": "11/16/2020",
         "scifact": "10/3/2020"
     }
 genai.configure(api_key=GOOGLE_API_KEY)
@@ -45,7 +43,6 @@ GEMINI_MODEL = genai.GenerativeModel("gemini-1.5-flash", generation_config=genai
 class SearchEngineRetriever:
     def __init__(self, dataset: str, headless: bool = True):
         self.skip_query_token = None
-        self.server_address = "https://plugin.anspire.cn/api/ntsearch/search"
         self.dataset = dataset
         # Initialize Selenium WebDriver
         options = webdriver.ChromeOptions()
@@ -57,73 +54,40 @@ class SearchEngineRetriever:
         self.driver = webdriver.Chrome(options=options)
         self.wait = WebDriverWait(self.driver, 10)
 
+        # 获取搜索引擎实例
+        from src.main.python.tools.search_base import get_search_engine, list_search_engines
+        available = list_search_engines()
+        if available:
+            self.search_engine = get_search_engine(available[0])
+            print(f"🔍 使用搜索引擎: {available[0]}")
+        else:
+            self.search_engine = None
+            print("⚠️  未找到可用搜索引擎")
+
     def create_content_dict(self, content: list, **kwargs) -> Dict:
         resp_content = {"content": content}
         resp_content.update(**kwargs)
         return resp_content
 
-
     def _query_search_server(self, query_term):
-        # 使用 Anspire 搜索引擎
-        if ANSPIRE_API_KEY:
+        if self.search_engine and self.search_engine.is_available():
             try:
-                # Anspire API
-                api_endpoint = "https://plugin.anspire.cn/api/ntsearch/search"
-                params = {
-                    "query": query_term,
-                    "top_k": 10,
-                }
-                headers = {
-                    "Authorization": f"Bearer {ANSPIRE_API_KEY}",
-                    "Content-Type": "application/json",
-                }
-                response = requests.get(api_endpoint, params=params, headers=headers, timeout=30)
-                if response.status_code == 200:
-                    data = response.json()
-                    print(f"🔍 Anspire 搜索结果: {json.dumps(data, ensure_ascii=False)[:500]}...")
-
-                    # 尝试解析 Anspire 的响应格式
-                    # 先尝试多种可能的字段
-                    items = []
-                    for key in ["results", "items", "data", "list"]:
-                        if key in data and isinstance(data[key], list):
-                            items = data[key]
-                            break
-
-                    # 如果没有找到列表，尝试整个响应是否是列表
-                    if not items and isinstance(data, list):
-                        items = data
-
-                    # 转换为 Serper 格式的 organic 结果
-                    organic_results = []
-                    for item in items:
-                        organic_results.append({
-                            "title": item.get("title", item.get("name", "")),
-                            "link": item.get("url", item.get("href", "")),
-                            "snippet": item.get("snippet", item.get("content", "")),
-                        })
-                    return organic_results
+                results = self.search_engine.search(query_term, num_results=10)
+                # 转换为旧的格式
+                organic_results = []
+                for r in results:
+                    organic_results.append({
+                        "title": r.title,
+                        "link": r.url,
+                        "snippet": r.snippet,
+                    })
+                print(f"🔍 搜索到 {len(organic_results)} 条结果")
+                return organic_results
             except Exception as e:
-                logging.error(f"Anspire search failed: {e}")
+                logging.error(f"Search engine error: {e}")
 
-        # 如果 Anspire 不可用，回退到 Serper
-        logging.warning("Anspire not available, trying Serper...")
-        payload = json.dumps({"q": query_term, "num": 10, "tbs": f"cdr:1,cd_min:,cd_max:{DATASET_DATE_LIMITS.get(self.dataset, '')}"})
-        headers = {
-            'X-API-KEY': SERPER_API_KEY,
-            'Content-Type': 'application/json'
-        }
-        response = requests.post(self.server_address, headers=headers, data=payload)
-        resp_status = response.status_code
-        if resp_status == 200:
-            try:
-                res = response.json()
-                return res.get('organic', [])  # Return empty list if 'organic' key is missing
-            except json.JSONDecodeError:
-                logging.error('Failed to parse JSON response from search server.')
-
-        logging.error('All API keys exhausted. No results retrieved.')
-        return [] # Return empty list if all keys are exhausted
+        logging.error('No search engine available.')
+        return []
 
     def _get_original_url(self, url):
         parsed_url = urlparse(url)
@@ -137,7 +101,7 @@ class SearchEngineRetriever:
         3. Publication history (domain age)
         4. Citation patterns (for scientific sources)
 
-        Returns: 
+        Returns:
             bool: True if the URL is considered legitimate, False otherwise
         """
         # Normalize URL for consistency
@@ -183,9 +147,9 @@ class SearchEngineRetriever:
         # 4. Citation patterns (for scientific claims)
         # Check if URL is from a recognized scientific source
         scientific_domains = [
-            'nature.com', 'science.org', 'nih.gov', 'pubmed.ncbi.nlm.nih.gov', 
-            'sciencedirect.com', 'springer.com', 'wiley.com', 'oxford', 'cambridge.org', 
-            'cell.com', 'nejm.org', 'thelancet.com', 'bmj.com', 'pnas.org'
+            "nature.com", "science.org", "nih.gov", "pubmed.ncbi.nlm.nih.gov",
+            "sciencedirect.com", "springer.com", "wiley.com", "oxford", "cambridge.org",
+            "cell.com", "nejm.org", "thelancet.com", "bmj.com", "pnas.org"
         ]
 
         if any(sci_domain in domain for sci_domain in scientific_domains):
@@ -225,7 +189,7 @@ class SearchEngineRetriever:
             if link_choosen != -1:
                 article_content = f"Article Title: {search_server_resp[link_choosen].get('title', '')} \nGoogle Snippet: {search_server_resp[link_choosen].get('snippet', ' ')}"
                 retrieved_doc = self._process_content(search_query, article_content)
-                 
+
         return retrieved_doc
 
     def get_details(self, url):
@@ -279,22 +243,22 @@ class SearchEngineRetriever:
     def _split_into_sentences(self, text):
         """Split text into sentences using regex patterns"""
         abbreviations = {
-            'dr.': 'doctor', 'mr.': 'mister', 'bro.': 'brother', 'mrs.': 'mistress',
-            'ms.': 'miss', 'jr.': 'junior', 'sr.': 'senior', 'i.e.': 'for example',
-            'e.g.': 'for example', 'vs.': 'versus'
+            "dr.": "doctor", "mr.": "mister", "bro.": "brother", "mrs.": "mistress",
+            "ms.": "miss", "jr.": "junior", "sr.": "senior", "i.e.": "for example",
+            "e.g.": "for example", "vs.": "versus"
         }
 
         # Replace abbreviations to avoid false sentence breaks
         for abbr, full in abbreviations.items():
             text = text.replace(abbr, full)
 
-        # Split into sentences using regex
+        # Split into sentences
         sentences = re.split(r'(?<=[.!?])\s+(?=[A-Z])', text)
         return [s.strip() for s in sentences if s.strip()]
 
     def _process_content(self, query: str, content: str):
         # Prompt evidence: evidence_fs_prompt (in prompt file)
-        ## if not enough info, add evidence
+        # if not enough info, add evidence
         """
         Processes retrieved content using Gemini to extract information relevant to the query.
 
@@ -348,5 +312,6 @@ def search_retrieve_news(query: str, dataset: str):
     try:
         search_result = SearchEngineRetriever(dataset).retrieve(queries=[query])
         return search_result[0]
-    except:
+    except Exception as e:
+        logging.error(f"Search retrieve error: {e}")
         return ""
