@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import logging
 import json
 import re
@@ -19,10 +19,7 @@ from itertools import cycle
 import whois
 import urllib.parse
 from datetime import datetime
-import google.generativeai as genai
 load_dotenv()
-
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # Load media bias data
 _MEDIA_BIAS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "media_bias_data.json")
@@ -36,14 +33,18 @@ DATASET_DATE_LIMITS = {
         "hover": "11/16/2020",
         "scifact": "10/3/2020"
     }
-genai.configure(api_key=GOOGLE_API_KEY)
-GEMINI_MODEL = genai.GenerativeModel("gemini-1.5-flash", generation_config=genai.GenerationConfig(temperature=0.1))
 
 
 class SearchEngineRetriever:
-    def __init__(self, dataset: str, headless: bool = True):
+    def __init__(self, dataset: str, llm: Optional["BaseLLM"] = None, headless: bool = True):
         self.skip_query_token = None
         self.dataset = dataset
+        # 内容抽取用的 LLM：由调用方传入（遵循开闭原则）。
+        # 不传入时默认构造豆包子类——模型名与 API Key 等细节都在 LLM 子类内部解析，本类不关心。
+        if llm is None:
+            from src.main.python.llms.doubao_client import DoubaoLLM
+            llm = DoubaoLLM()
+        self.llm = llm
         # Initialize Selenium WebDriver
         options = webdriver.ChromeOptions()
         if headless:
@@ -260,7 +261,10 @@ class SearchEngineRetriever:
         # Prompt evidence: evidence_fs_prompt (in prompt file)
         # if not enough info, add evidence
         """
-        Processes retrieved content using Gemini to extract information relevant to the query.
+        抽取网页正文中与查询相关的信息。
+
+        通过 LLM 抽象层（src.main.python.llms）调用大模型完成抽取，
+        默认使用豆包；不在此处硬编码任何具体厂商，遵循开闭原则。
 
         Args:
             query: The original search query.
@@ -270,7 +274,6 @@ class SearchEngineRetriever:
             A string containing only the information from the content that is relevant to the query.
             Returns an empty string if no relevant information is found.
         """
-
         prompt_template = PromptTemplate.from_template(
             """
             You are a helpful assistant who extracts information from text.
@@ -284,8 +287,8 @@ class SearchEngineRetriever:
             """
         )
         prompt = prompt_template.format(query=query, content=content)
-        response = GEMINI_MODEL.generate_content(prompt)
-        return response.text.strip() if response.text else ""
+        response = self.llm.chat(prompt, temperature=0.1)
+        return response.strip() if response else ""
 
     def retrieve(self, queries: List[str]) -> List[Dict[str, Any]]:
         return [self._retrieve_single(q) for q in queries]
