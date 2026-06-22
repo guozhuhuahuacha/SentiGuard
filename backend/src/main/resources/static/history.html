@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
@@ -1081,7 +1081,122 @@
         transition-duration: 0.01ms !important;
       }
     }
-  </style>
+  
+    /* 统一侧边导航视觉：三个独立 HTML 页面保持同一套菜单颜色 */
+    .sidebar {
+      background: #243545 !important;
+      color: #dbe7f0 !important;
+      border-right: 1px solid #182635 !important;
+    }
+
+    .sidebar .brand {
+      background: #192938 !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    .sidebar .brand-mark {
+      color: #102a3b !important;
+      background: #f3c84b !important;
+      border-radius: 7px !important;
+    }
+
+    .sidebar .brand-name {
+      color: #f5fbff !important;
+    }
+
+    .sidebar .brand-desc {
+      color: #9eb0bf !important;
+    }
+
+    .sidebar .nav-title {
+      color: #91a5b6 !important;
+    }
+
+    .sidebar .nav-item {
+      background: transparent !important;
+      color: #dbe7f0 !important;
+      border-radius: 6px !important;
+      box-shadow: none !important;
+      transform: none !important;
+      text-decoration: none !important;
+    }
+
+    .sidebar .nav-item:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      transform: none !important;
+    }
+
+    .sidebar .nav-item.active {
+      background: #1f78b5 !important;
+      color: #ffffff !important;
+      box-shadow: none !important;
+    }
+
+    .sidebar .badge,
+    .sidebar .tag {
+      min-width: 42px !important;
+      height: 22px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 0 8px !important;
+      border-radius: 999px !important;
+      font-size: 12px !important;
+      font-weight: 900 !important;
+      white-space: nowrap !important;
+    }
+
+    .sidebar .badge,
+    .sidebar .tag:not(.pos) {
+      color: #566a7d !important;
+      background: #e5edf4 !important;
+    }
+
+    .sidebar .badge.live,
+    .sidebar .tag.pos {
+      color: #0a5b3b !important;
+      background: #cfeedd !important;
+    }
+
+    /* 统一侧边栏尺寸：避免三个页面左侧栏宽度和菜单边距不一致 */
+    .app {
+      grid-template-columns: 260px minmax(0, 1fr) !important;
+    }
+
+    .sidebar {
+      width: 260px !important;
+      flex: 0 0 260px !important;
+    }
+
+    .sidebar .brand {
+      height: 82px !important;
+      padding: 0 22px !important;
+      gap: 12px !important;
+    }
+
+    .sidebar .brand-mark {
+      width: 38px !important;
+      height: 38px !important;
+    }
+
+    .sidebar .nav-block {
+      padding: 18px 14px 8px !important;
+    }
+
+    .sidebar .nav-item {
+      width: 100% !important;
+      min-height: 44px !important;
+      grid-template-columns: 24px 1fr auto !important;
+      gap: 10px !important;
+      padding: 0 12px !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+
+    .sidebar .nav-item + .nav-item {
+      margin-top: 5px !important;
+    }
+</style>
 </head>
 <body>
   <div class="app">
@@ -1095,7 +1210,10 @@
       </div>
 
       <div class="nav-block">
-        <div class="nav-title">事实核查</div>
+        <div class="nav-title">功能导航</div>
+        <a class="nav-item" href="/dashboard.html">
+          <span>🔥</span><span>舆情监测</span><span class="badge live">实时</span>
+        </a>
         <a class="nav-item" href="/">
           <span>✓</span><span>核查工作台</span><span class="badge">提交</span>
         </a>
