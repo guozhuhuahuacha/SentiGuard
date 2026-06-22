@@ -6,6 +6,12 @@ tqdm
 matplotlib
 seaborn
 
+# Chinese NLP and sentiment analysis
+snownlp
+
+# Database driver
+pymysql
+
 # Web scraping and search tools
 requests
 beautifulsoup4
