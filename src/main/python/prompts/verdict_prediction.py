@@ -15,9 +15,15 @@ verdict_prediction = {
                     "explanation": {
                         "type": "string",
                         "description": "中文解释，基于证据说明判定理由，引用关键证据和来源。"
+                    },
+                    "confidenceScore": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "你基于证据充分性、来源可靠性、一致性和冲突程度计算得到的结论置信度，0-100。"
                     }
                 },
-                "required": ["label", "explanation"],
+                "required": ["label", "explanation", "confidenceScore"],
                 "additionalProperties": False
             }
         },
@@ -48,8 +54,9 @@ verdict_prediction_prompt = """
    - 如果多个来源与该子声明矛盾，判定为 "not_supported"
    - 如果证据混杂、不足或不明确，判定为 "not_supported"
 
-3. 提供判定理由（**必须使用中文**）
+3. 提供判定理由与置信度（必须使用中文）
    - 清晰解释为什么判定为 "supported" 或 "not_supported"
    - 引用影响你决定的关键证据
    - 如果证据不充分，说明局限性或不确定性
+   - 必须给出 confidenceScore，分数必须由你基于证据充分性、来源可靠性、证据一致性、冲突程度综合计算，范围 0-100
 """

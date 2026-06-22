@@ -1,6 +1,7 @@
 package com.sentiguard.backend.vo;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import lombok.Data;
 
@@ -24,4 +25,6 @@ public class EvidenceVO {
     private String relationType;
 
     private BigDecimal credibilityScore;
+
+    private LocalDateTime publishTime;
 }

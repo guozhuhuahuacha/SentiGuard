@@ -81,6 +81,10 @@ class SearchEngineRetriever:
                         "title": r.title,
                         "link": r.url,
                         "snippet": r.snippet,
+                        "content": r.content,
+                        "source": r.source,
+                        "published_date": r.published_date,
+                        "score": r.score,
                     })
                 print(f"🔍 搜索到 {len(organic_results)} 条结果")
                 return organic_results
@@ -167,8 +171,6 @@ class SearchEngineRetriever:
         from src.main.python import tracing
         trace = tracing.get_current()
 
-        retrieved_doc = ""
-        chosen_url = ""
         search_server_resp = self._query_search_server(search_query)
         if not search_server_resp:
             logging.warning(
@@ -177,40 +179,89 @@ class SearchEngineRetriever:
             )
             if trace:
                 trace.search(search_query, 0, "", "")
-            return retrieved_doc
+            return ""
 
+        fallback = search_server_resp[0]
+        fallback_url = fallback.get("link", "")
+        fallback_title = fallback.get("title", "")
+        fallback_source_name = fallback.get("source") or self._get_original_url(fallback_url).rstrip("/")
+        fallback_publish_time = fallback.get("published_date") or ""
+        fallback_score = self._normalize_score(fallback.get("score"))
+        fallback_text = self._build_fallback_evidence(fallback)
+
+        retrieved_doc = ""
+        chosen_url = ""
         chosen_title = ""
         chosen_source_name = ""
-        for i, rd in enumerate(search_server_resp):
-            link_choosen = -1
-            original_url = self._get_original_url(rd.get("link", ""))
-            if self._check_valid_url(original_url):
-                if link_choosen == -1:
-                    link_choosen = i
-                url = rd.get('link', '')
-                title = rd.get('title', '')
-                content = self.get_details(url)
-                snippet = rd.get("snippet", " ")
-                if len(content) > 1:
-                    article_content = f"Article Title: {title} \nGoogle Snippet: {snippet}\nArticle Content: \n{content}"
-                    retrieved_doc = self._process_content(search_query, article_content)
-                if retrieved_doc:
-                    chosen_url = url
-                    chosen_title = title
-                    chosen_source_name = self._get_original_url(url).rstrip("/")
-                    break
-            if link_choosen != -1:
-                chosen_title = search_server_resp[link_choosen].get('title', '')
-                chosen_source_name = self._get_original_url(search_server_resp[link_choosen].get('link', '')).rstrip("/")
-                article_content = f"Article Title: {chosen_title} \nGoogle Snippet: {search_server_resp[link_choosen].get('snippet', ' ')}"
+        chosen_publish_time = ""
+        chosen_score = None
+
+        for rd in search_server_resp:
+            url = rd.get("link", "")
+            title = rd.get("title", "")
+            snippet = rd.get("snippet", " ")
+            published_date = rd.get("published_date") or ""
+            # 这里必须传完整 URL，不能传 domain/，否则 urlparse 取不到 netloc。
+            if not self._check_valid_url(url):
+                continue
+
+            content = self.get_details(url)
+            if len(content) > 1:
+                article_content = f"Article Title: {title} \nGoogle Snippet: {snippet}\nArticle Content: \n{content}"
                 retrieved_doc = self._process_content(search_query, article_content)
-                chosen_url = search_server_resp[link_choosen].get('link', '')
+            if not retrieved_doc:
+                article_content = f"Article Title: {title} \nGoogle Snippet: {snippet}"
+                retrieved_doc = self._process_content(search_query, article_content)
+
+            if retrieved_doc and retrieved_doc.strip().lower() not in {"none", "null", "n/a"}:
+                chosen_url = url
+                chosen_title = title
+                chosen_source_name = rd.get("source") or self._get_original_url(url).rstrip("/")
+                chosen_publish_time = published_date
+                chosen_score = self._normalize_score(rd.get("score"))
+                break
+
+        # 如果网页抓取/LLM 抽取失败，仍然使用搜索引擎返回的 Top1 摘要作为可落库证据。
+        if not retrieved_doc or retrieved_doc.strip().lower() in {"none", "null", "n/a"}:
+            retrieved_doc = fallback_text
+            chosen_url = fallback_url
+            chosen_title = fallback_title
+            chosen_source_name = fallback_source_name
+            chosen_publish_time = fallback_publish_time
+            chosen_score = fallback_score
 
         if trace:
             trace.search(search_query, len(search_server_resp), chosen_url, retrieved_doc,
-                         source_title=chosen_title, source_name=chosen_source_name)
+                         source_title=chosen_title, source_name=chosen_source_name,
+                         publish_time=chosen_publish_time,
+                         credibility_score=chosen_score)
 
         return retrieved_doc
+
+    def _build_fallback_evidence(self, search_result: Dict[str, Any]) -> str:
+        title = str(search_result.get("title") or "").strip()
+        snippet = str(search_result.get("snippet") or "").strip()
+        content = str(search_result.get("content") or "").strip()
+        if content and content != snippet:
+            text = content
+        else:
+            text = snippet
+        parts = []
+        if title:
+            parts.append(title)
+        if text:
+            parts.append(text)
+        return "\n".join(parts).strip()
+
+
+    def _normalize_score(self, score: Any) -> Optional[int]:
+        try:
+            value = float(score)
+        except (TypeError, ValueError):
+            return None
+        if value <= 1:
+            value *= 100
+        return max(0, min(100, round(value)))
 
     def get_details(self, url):
         """Extract content from webpage using Selenium"""
@@ -337,3 +388,7 @@ def search_retrieve_news(query: str, dataset: str):
     except Exception as e:
         logging.error(f"Search retrieve error: {e}")
         return ""
+
+
+
+

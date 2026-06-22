@@ -359,7 +359,7 @@
 
     .tag.true, .tag.supported, .tag.success { color: var(--color-success); background: var(--color-success-soft); }
     .tag.false, .tag.not_supported, .tag.failed { color: var(--color-danger); background: var(--color-danger-soft); }
-    .tag.neutral, .tag.pending, .tag.running { color: var(--color-warning); background: var(--color-warning-soft); }
+    .tag.neutral, .tag.partly_supported, .tag.partly_true, .tag.insufficient_evidence, .tag.pending, .tag.running { color: var(--color-warning); background: var(--color-warning-soft); }
 
     .risk {
       display: inline-flex;
@@ -1521,16 +1521,20 @@
 
             <div class="detail-block">
               <div class="detail-title">证据材料</div>
-              ${evidences.length ? evidences.map(evidence => `
+              ${evidences.length ? evidences.map(evidence => {
+                const evidenceUrl = evidence.url || evidence.evidenceUrl || '';
+                const score = evidence.credibilityScore == null ? 'N/A' : `${evidence.credibilityScore}`;
+                return `
                 <div class="evidence">
                   <div class="evidence-head">
-                    <strong>${escapeHtml(evidence.title || '未命名证据')}</strong>
+                    <strong>${escapeHtml(evidence.title || evidence.evidenceTitle || '未命名证据')}</strong>
                     <span class="tag ${labelClass(evidence.relationType)}">${escapeHtml(relationText(evidence.relationType))}</span>
                   </div>
-                  <div class="detail-text">${escapeHtml(evidence.content || '')}</div>
-                  <div class="muted">${escapeHtml(evidence.sourceName || '未知来源')} · ${escapeHtml(evidence.evidenceType || '证据')}</div>
+                  <div class="detail-text">${escapeHtml(evidence.content || evidence.evidenceContent || '')}</div>
+                  <div class="muted">${escapeHtml(evidence.sourceName || '未知来源')} · ${escapeHtml(evidence.evidenceType || '证据')} · 可信度 ${escapeHtml(score)} · ${escapeHtml(formatTime(evidence.publishTime))}</div>
+                  ${evidenceUrl ? `<div class="muted"><a href="${escapeHtml(evidenceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(evidenceUrl)}</a></div>` : ''}
                 </div>
-              `).join('') : '<div class="muted">暂无证据材料。</div>'}
+              `}).join('') : '<div class="muted">暂无证据材料。</div>'}
             </div>
 
             <div class="detail-block">
@@ -1750,3 +1754,5 @@
   </script>
 </body>
 </html>
+
+

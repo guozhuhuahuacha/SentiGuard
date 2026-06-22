@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -20,6 +21,7 @@ public class FactCheckResult {
 
     private String resultLabel;
 
+    @TableField("confidence_score")
     private BigDecimal confidenceScore;
 
     private String conclusion;
@@ -42,3 +44,4 @@ public class FactCheckResult {
 
     private LocalDateTime updateTime;
 }
+

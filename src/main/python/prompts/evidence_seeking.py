@@ -26,9 +26,15 @@ evidence_seeking = {
                                     "evidence": {
                                         "type": "string",
                                         "description": "搜索引擎返回的中文证据摘要，必须使用中文撰写，包含最新数据和具体来源。"
+                                    },
+                                    "credibilityScore": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 100,
+                                        "description": "你基于检索结果来源权威性、内容相关性、发布时间、证据完整性计算得到的证据可信度，0-100。"
                                     }
                                 },
-                                "required": ["query", "evidence"],
+                                "required": ["query", "evidence", "credibilityScore"],
                                 "additionalProperties": False
                             },
                             "description": "A list of queries and their corresponding evidence for the subclaim."
@@ -62,5 +68,5 @@ evidence_seeking_prompt = """
 2. 对每个问题，调用 `search_retrieve_news(query=问题内容, dataset="fever")`
 3. 从搜索结果中提取与问题直接相关的信息
 4. 将提取的证据用中文整理到 `evidence` 字段
+5. 必须为每条证据给出 `credibilityScore`，分数由你基于来源权威性、内容相关性、发布时间、证据完整性综合计算，范围 0-100
 """
-

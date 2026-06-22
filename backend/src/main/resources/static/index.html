@@ -550,6 +550,8 @@
     }
 
     .tag.partly_true,
+    .tag.partly_supported,
+    .tag.insufficient_evidence,
     .tag.neutral,
     .tag.running,
     .tag.pending {
@@ -959,6 +961,8 @@
     }
 
     .tag.partly_true,
+    .tag.partly_supported,
+    .tag.insufficient_evidence,
     .tag.neutral,
     .tag.running,
     .tag.pending {
@@ -2023,6 +2027,10 @@
         width: max-content;
       }
     }
+
+    #reportView {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -2061,7 +2069,7 @@
       <section class="content">
         <section class="hero">
           <div>
-            <div class="eyebrow">政务事实核查</div>
+            
             <h1>核查工作台</h1>
             <div class="hero-desc">
               面向公开信息、政策表述与事件陈述的事实核验，形成可追溯的结论、证据与报告。
@@ -2123,7 +2131,7 @@
             </div>
             <div class="panel-body compact-output">
               <div id="resultView" class="empty compact-empty">暂无核查结果</div>
-              <div id="claimEvidenceView" class="empty compact-empty secondary-output">核查完成后，可导出完整证据与报告。</div>
+              <div id="claimEvidenceView" class="empty compact-empty secondary-output" style="display:none"></div>
               <div id="reportView" class="empty compact-report">核查详情将在导出文件中提供。</div>
             </div>
           </div>
@@ -2279,6 +2287,8 @@
       if (result.labelText) return result.labelText;
       if (result.label === 'true' || result.label === 'supported') return '真实';
       if (result.label === 'false' || result.label === 'not_supported') return '不支持';
+      if (result.label === 'partly_true' || result.label === 'partly_supported') return '部分支持';
+      if (result.label === 'insufficient_evidence') return '证据不足';
       return result.label || '未知';
     }
 
@@ -2290,6 +2300,81 @@
 
     function tagClass(value) {
       return value || 'neutral';
+    }
+
+    function parseStructuredText(value) {
+      if (!value) return null;
+      if (typeof value === 'object') return value;
+      const text = String(value).trim();
+      if (!text || !text.startsWith('{') || !text.endsWith('}')) return null;
+
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        // Some model adapters return a Python-like dict string with single quotes.
+      }
+
+      const normalized = text
+        .replace(/([{,]\s*)'([^']+?)'\s*:/g, '$1"$2":')
+        .replace(/:\s*'([\s\S]*?)'\s*(?=[,}])/g, (_, content) => `:${JSON.stringify(content)}`);
+      try {
+        return JSON.parse(normalized);
+      } catch (error) {
+        const explanationMatch = text.match(/['"]explanation['"]\s*:\s*['"]([\s\S]*?)['"]\s*(?:[,}])/);
+        if (explanationMatch) {
+          return { explanation: explanationMatch[1] };
+        }
+        return null;
+      }
+    }
+
+    function isStructuredText(value) {
+      if (!value || typeof value !== 'string') return false;
+      const text = value.trim();
+      return text.startsWith('{') && text.endsWith('}');
+    }
+
+    function cleanDisplayText(value) {
+      if (value == null) return '';
+      if (typeof value === 'object') {
+        return value.explanation || value.conclusion || value.content || '';
+      }
+      const parsed = parseStructuredText(value);
+      if (parsed) {
+        return parsed.explanation || parsed.conclusion || parsed.content || '';
+      }
+      return String(value).trim();
+    }
+
+    function normalizeResultDisplay(result) {
+      const parsedConclusion = parseStructuredText(result.conclusion);
+      const parsedAnalysis = parseStructuredText(result.analysisDetail);
+      const rawConclusion = isStructuredText(result.conclusion) ? '' : cleanDisplayText(result.conclusion);
+      const rawAnalysis = isStructuredText(result.analysisDetail) ? '' : cleanDisplayText(result.analysisDetail);
+
+      return {
+        conclusion: rawConclusion
+          || cleanDisplayText(parsedConclusion && (parsedConclusion.conclusion || parsedConclusion.explanation))
+          || cleanDisplayText(parsedAnalysis && parsedAnalysis.conclusion)
+          || '暂无结论',
+        explanation: cleanDisplayText(parsedAnalysis && parsedAnalysis.explanation)
+          || rawAnalysis
+          || cleanDisplayText(parsedConclusion && parsedConclusion.explanation)
+          || '暂无详细分析。'
+      };
+    }
+
+    function isAgentGeneratedEvidence(evidence) {
+      const text = [
+        evidence.title,
+        evidence.evidenceTitle,
+        evidence.sourceName,
+        evidence.content,
+        evidence.evidenceContent
+      ].filter(Boolean).join(' ');
+      return text.includes('智能体核查解释')
+        || text.includes('SentiGuard FastAPI')
+        || text.includes('SentiGuard 智能体');
     }
 
     function setMode(mode) {
@@ -2305,6 +2390,7 @@
       const claims = detail.claims || [];
       const evidences = detail.evidences || [];
       const report = detail.report || {};
+      const display = normalizeResultDisplay(result);
       const lines = [
         'SentiGuard 事实核查详情',
         '',
@@ -2317,10 +2403,9 @@
         detail.inputText || '-',
         '',
         '二、核查结论',
-        `结论标签：${normalizeLabelText(result)}`,
         `置信度：${result.confidenceScore == null ? '-' : result.confidenceScore + '%'}`,
-        `结论摘要：${result.conclusion || '-'}`,
-        `分析说明：${result.analysisDetail || '-'}`,
+        `结论摘要：${display.conclusion}`,
+        `分析说明：${display.explanation}`,
         '',
         '三、声明拆解'
       ];
@@ -2338,18 +2423,19 @@
       if (evidences.length) {
         evidences.forEach((evidence, index) => {
           const url = evidence.url || evidence.evidenceUrl || '-';
+          const evidenceContent = cleanDisplayText(evidence.content || evidence.evidenceContent) || '-';
           lines.push(`${index + 1}. ${evidence.title || evidence.evidenceTitle || '未命名证据'}`);
           lines.push(`   关系：${relationText(evidence.relationType)}`);
           lines.push(`   来源：${evidence.sourceName || '未知来源'}`);
           lines.push(`   类型：${evidence.evidenceType || evidence.type || '证据'}`);
           lines.push(`   链接：${url}`);
-          lines.push(`   内容：${evidence.content || evidence.evidenceContent || '-'}`);
+          lines.push(`   内容：${evidenceContent}`);
         });
       } else {
         lines.push('暂无证据材料');
       }
 
-      lines.push('', '五、核查报告', report.content || report.reportContent || '暂无报告内容');
+      lines.push('', '五、核查报告', cleanDisplayText(report.content || report.reportContent) || '暂无报告内容');
       return lines.join('\n');
     }
 
@@ -2411,6 +2497,7 @@
         payload.hotEventId = Number(el.hotEventId.value);
       }
 
+      clearResultForLoading();
       el.analyzeBtn.disabled = true;
       el.analyzeBtn.textContent = '核查中...';
       el.metricStatus.textContent = '核查中';
@@ -2433,6 +2520,24 @@
       }
     }
 
+    function clearResultForLoading() {
+      currentDetail = null;
+      el.inputPanel.classList.remove('has-result');
+      el.exportBtn.disabled = true;
+      el.metricTask.textContent = '-';
+      el.metricStatus.textContent = '核查中';
+      el.metricClaims.textContent = '0';
+      el.metricEvidence.textContent = '0';
+      el.taskMeta.textContent = '正在核查';
+      el.resultView.className = 'empty';
+      el.resultView.textContent = '正在核查，请稍候...';
+      el.claimEvidenceView.className = 'empty';
+      el.claimEvidenceView.style.display = 'none';
+      el.claimEvidenceView.textContent = '';
+      el.reportView.className = 'empty';
+      el.reportView.textContent = '';
+    }
+
     function renderDetail(detail) {
       currentDetail = detail;
       el.inputPanel.classList.add('has-result');
@@ -2441,6 +2546,7 @@
       const claims = detail.claims || [];
       const evidences = detail.evidences || [];
       const report = detail.report || {};
+      const display = normalizeResultDisplay(result);
 
       el.metricTask.textContent = detail.taskId || '-';
       el.metricStatus.textContent = detail.status === 'success' ? '已完成' : (detail.status || '-');
@@ -2459,19 +2565,20 @@
             ${confidence}
           </div>
           <div class="analysis">
-            <div class="conclusion">${escapeHtml(result.conclusion || '暂无结论')}</div>
-            <div>${escapeHtml(result.analysisDetail || '暂无详细分析。')}</div>
+            <div class="conclusion">${escapeHtml(display.conclusion)}</div>
+            <div>${escapeHtml(display.explanation)}</div>
           </div>
         </div>
       `;
 
       el.claimEvidenceView.className = '';
-      const sourceCount = new Set(evidences.map(item => item.sourceName).filter(Boolean)).size || evidences.length;
+      el.claimEvidenceView.style.display = '';
+      const visibleEvidences = evidences.filter(evidence => !isAgentGeneratedEvidence(evidence));
       el.claimEvidenceView.innerHTML = `
         <div class="result-summary">
           <div class="summary-item">
-            <div class="summary-label">证据来源</div>
-            <div class="summary-value">${escapeHtml(sourceCount)} 个</div>
+            <div class="summary-label">证据数量</div>
+            <div class="summary-value">${escapeHtml(visibleEvidences.length)} 条</div>
           </div>
           <div class="summary-item">
             <div class="summary-label">核查点</div>
@@ -2484,8 +2591,8 @@
         </div>
       `;
 
-      el.reportView.className = 'report-content';
-      el.reportView.textContent = report.content || report.reportContent || '暂无报告内容';
+      el.reportView.className = 'empty';
+      el.reportView.textContent = '';
     }
 
     function resetPage() {
@@ -2503,9 +2610,10 @@
       el.resultView.className = 'empty';
       el.resultView.textContent = '暂无核查结果';
       el.claimEvidenceView.className = 'empty';
-      el.claimEvidenceView.textContent = '核查完成后，可导出完整证据与报告。';
+      el.claimEvidenceView.style.display = 'none';
+      el.claimEvidenceView.textContent = '';
       el.reportView.className = 'empty';
-      el.reportView.textContent = '核查详情将在导出文件中提供。';
+      el.reportView.textContent = '';
     }
 
     el.form.addEventListener('submit', analyze);
@@ -2541,3 +2649,5 @@
   </script>
 </body>
 </html>
+
+

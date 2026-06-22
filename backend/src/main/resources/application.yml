@@ -31,7 +31,7 @@ jwt:
 sentiguard:
   agent:
     base-url: ${SENTIGUARD_AGENT_BASE_URL:http://127.0.0.1:8000}
-    fact-check-path: /internal/v1/fact-check
+    fact-check-path: /internal/v1/fact-check/detail/db
     internal-token: ${SENTIGUARD_INTERNAL_TOKEN:dev-internal-token}
-    connect-timeout-ms: 5000
-    read-timeout-ms: 150000
+    connect-timeout-ms: 10000
+    read-timeout-ms: 300000

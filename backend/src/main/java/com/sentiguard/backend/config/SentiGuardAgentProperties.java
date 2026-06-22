@@ -14,7 +14,7 @@ public class SentiGuardAgentProperties {
 
     private String internalToken = "dev-internal-token";
 
-    private int connectTimeoutMs = 5000;
+    private int connectTimeoutMs = 10000;
 
-    private int readTimeoutMs = 150000;
+    private int readTimeoutMs = 300000;
 }

@@ -262,11 +262,12 @@ public class FactCheckServiceImpl implements FactCheckService {
             FactClaim claim = new FactClaim();
             claim.setTaskId(taskId);
             claim.setClaimText(agentClaim.getClaimText());
-            claim.setClaimType(agentClaim.getClaimType());
-            claim.setClaimOrder(agentClaim.getClaimOrder());
+            claim.setClaimType(truncate(agentClaim.getClaimType(), 50));
+            Integer claimOrder = agentClaim.getClaimOrder() == null ? claimIdByOrder.size() + 1 : agentClaim.getClaimOrder();
+            claim.setClaimOrder(claimOrder);
             claim.setCreateTime(LocalDateTime.now());
             claimMapper.insert(claim);
-            claimIdByOrder.put(agentClaim.getClaimOrder(), claim.getId());
+            claimIdByOrder.put(claimOrder, claim.getId());
         }
         return claimIdByOrder;
     }
@@ -276,16 +277,24 @@ public class FactCheckServiceImpl implements FactCheckService {
             return;
         }
         for (AgentEvidence agentEvidence : evidences) {
+            if (agentEvidence == null || !StringUtils.hasText(agentEvidence.getContent())) {
+                continue;
+            }
+            Long claimId = claimIdByOrder.get(agentEvidence.getClaimOrder());
+            if (claimId == null) {
+                claimId = claimIdByOrder.get(1);
+            }
             Evidence evidence = new Evidence();
             evidence.setTaskId(taskId);
-            evidence.setClaimId(claimIdByOrder.get(agentEvidence.getClaimOrder()));
-            evidence.setEvidenceTitle(agentEvidence.getTitle());
+            evidence.setClaimId(claimId);
+            evidence.setEvidenceTitle(truncate(agentEvidence.getTitle(), 300));
             evidence.setEvidenceContent(agentEvidence.getContent());
-            evidence.setEvidenceUrl(agentEvidence.getUrl());
-            evidence.setSourceName(agentEvidence.getSourceName());
-            evidence.setEvidenceType(defaultIfBlank(agentEvidence.getEvidenceType(), "web"));
-            evidence.setRelationType(defaultIfBlank(agentEvidence.getRelationType(), "neutral"));
+            evidence.setEvidenceUrl(truncate(agentEvidence.getUrl(), 800));
+            evidence.setSourceName(truncate(agentEvidence.getSourceName(), 100));
+            evidence.setEvidenceType(truncate(defaultIfBlank(agentEvidence.getEvidenceType(), "web"), 30));
+            evidence.setRelationType(truncate(defaultIfBlank(agentEvidence.getRelationType(), "neutral"), 30));
             evidence.setCredibilityScore(agentEvidence.getCredibilityScore());
+            evidence.setPublishTime(agentEvidence.getPublishTime());
             evidence.setCreateTime(LocalDateTime.now());
             evidenceMapper.insert(evidence);
         }
@@ -322,9 +331,9 @@ public class FactCheckServiceImpl implements FactCheckService {
     private void saveReport(Long taskId, String inputText, AgentCheckResponse agentResponse) {
         AnalysisReport report = new AnalysisReport();
         report.setTaskId(taskId);
-        report.setReportTitle(defaultIfBlank(agentResponse.getReport().getTitle(), inputText + "事实核查报告"));
+        report.setReportTitle(truncate(defaultIfBlank(agentResponse.getReport().getTitle(), inputText + "事实核查报告"), 200));
         report.setReportContent(agentResponse.getReport().getContent());
-        report.setReportFormat(defaultIfBlank(agentResponse.getReport().getFormat(), "markdown"));
+        report.setReportFormat(truncate(defaultIfBlank(agentResponse.getReport().getFormat(), "markdown"), 30));
         report.setCreateTime(LocalDateTime.now());
         report.setUpdateTime(LocalDateTime.now());
         report.setIsDeleted(0);
@@ -357,6 +366,7 @@ public class FactCheckServiceImpl implements FactCheckService {
             vo.setEvidenceType(evidence.getEvidenceType());
             vo.setRelationType(evidence.getRelationType());
             vo.setCredibilityScore(evidence.getCredibilityScore());
+            vo.setPublishTime(evidence.getPublishTime());
             vos.add(vo);
         }
         return vos;
@@ -399,8 +409,8 @@ public class FactCheckServiceImpl implements FactCheckService {
         if ("false".equals(label) || "not_supported".equals(label)) {
             return "不支持";
         }
-        if ("partly_true".equals(label)) {
-            return "部分真实";
+        if ("partly_true".equals(label) || "partly_supported".equals(label)) {
+            return "部分支持";
         }
         if ("insufficient_evidence".equals(label)) {
             return "证据不足";
@@ -410,5 +420,12 @@ public class FactCheckServiceImpl implements FactCheckService {
 
     private String defaultIfBlank(String value, String defaultValue) {
         return StringUtils.hasText(value) ? value : defaultValue;
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 }

@@ -22,16 +22,19 @@ from typing import Any, Dict, List, Optional
 # 当前活跃 trace 句柄（线程局部，供 retrieve.py 等叶子节点写入）
 # ---------------------------------------------------------------------------
 _local = threading.local()
+_global_trace: Optional["TraceCollector"] = None
 
 
 def set_current(trace: Optional["TraceCollector"]) -> None:
     """设置当前线程的活跃 trace；process_claim 开始时调用。"""
+    global _global_trace
     _local.trace = trace
+    _global_trace = trace
 
 
 def get_current() -> Optional["TraceCollector"]:
     """获取当前线程的活跃 trace；无活跃 trace 时返回 None。"""
-    return getattr(_local, "trace", None)
+    return getattr(_local, "trace", None) or _global_trace
 
 
 def _short(text: Any, limit: int = 200) -> str:
@@ -101,7 +104,8 @@ class TraceCollector:
 
     def search(self, query: str, num_results: int,
                chosen_url: str, evidence_snippet: str,
-               source_title: str = "", source_name: str = "") -> None:
+               source_title: str = "", source_name: str = "",
+               publish_time: str = "", credibility_score: Optional[int] = None) -> None:
         self._add({
             "type": "search",
             "query": query,
@@ -110,6 +114,8 @@ class TraceCollector:
             "evidence_snippet": evidence_snippet,
             "source_title": source_title,
             "source_name": source_name,
+            "publish_time": publish_time,
+            "credibility_score": credibility_score,
         })
 
     def verdict(self, label: Optional[str], explanation: Optional[str]) -> None:
@@ -151,14 +157,12 @@ class TraceCollector:
         print("=" * 80)
         print(f"claim: {_short(self._claim, 300)}")
 
-        # 先打印 supervisor 路由序列
         routes = [e for e in self.events if e["type"] == "supervisor"]
         if routes:
             print("\n[路由路径]")
             for e in routes:
                 print(f"  {e['graph']:>10} supervisor → {e['next']}")
 
-        # 各阶段结构化输出
         print("\n[推理步骤]")
         for e in self.events:
             t = e["type"]
@@ -167,16 +171,15 @@ class TraceCollector:
             elif t == "search":
                 self._print_search(e)
             elif t == "verdict":
-                print(f"\n  ── verdict ──")
+                print("\n  ── verdict ──")
                 print(f"     label: {e['label']}")
                 print(f"     explanation: {_short(e['explanation'], 400)}")
 
         print("\n" + "=" * 80)
-
     def _print_step(self, e: Dict[str, Any]) -> None:
         node = e["node"]
         sr = e.get("structured_response") or {}
-        print(f"\n  ── {node} ──")
+        print(f"\\n  ── {node} ──")
         if not isinstance(sr, dict):
             print(f"     {_short(sr, 300)}")
             return
@@ -216,9 +219,15 @@ class TraceCollector:
                         if isinstance(qe, dict):
                             lines.append(f"     ? {_short(qe.get('query'), 120)}")
                             lines.append(f"       evidence: {_short(qe.get('evidence'), 200)}")
+                            if qe.get("credibilityScore") is not None or qe.get("credibility_score") is not None:
+                                score = qe.get("credibilityScore", qe.get("credibility_score"))
+                                lines.append(f"       credibilityScore: {score}")
         elif node == "verdict_predictor":
             res = sr.get("result") if isinstance(sr.get("result"), dict) else sr
             lines.append(f"label: {res.get('label')}")
+            if res.get("confidenceScore") is not None or res.get("confidence_score") is not None:
+                score = res.get("confidenceScore", res.get("confidence_score"))
+                lines.append(f"confidenceScore: {score}")
             lines.append(f"explanation: {_short(res.get('explanation'), 300)}")
         else:
             lines.append(_short(json.dumps(sr, ensure_ascii=False, default=str), 300))
@@ -228,3 +237,4 @@ class TraceCollector:
         print(f"\n  [search] {_short(e['query'], 120)}")
         print(f"     → {e['num_results']} 条结果，选中: {_short(e['chosen_url'], 120)}")
         print(f"     证据: {_short(e['evidence_snippet'], 200)}")
+
