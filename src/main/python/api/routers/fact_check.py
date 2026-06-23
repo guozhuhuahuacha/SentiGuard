@@ -276,7 +276,7 @@ def _build_f3_result(label: str, explanation: str, confidence_score, evidence_it
 
 
 def _build_quick_response(agent: FactAgent, req: FactCheckRequest) -> FactCheckDetailDBData:
-    """快速核查：标准 FactAgent + 摘要搜索 + 数据驱动 Markdown 报告。"""
+    """快速核查：标准 FactAgent + 摘要搜索 + HTML 报告。"""
     results = agent.process_claim(
         req.claim.strip(),
         recursion_limit=300,
@@ -297,13 +297,13 @@ def _build_quick_response(agent: FactAgent, req: FactCheckRequest) -> FactCheckD
     claims, evidence_items = _build_claims_evidences_from_trace(events, req.claim.strip(), label)
     f3_result = _build_f3_result(label, explanation, confidence_score, evidence_items)
 
-    # 数据驱动 Markdown 报告
+    # 数据驱动 HTML 报告
     report_data = _build_report_data_from_f3(claims, evidence_items, f3_result, agent.trace, req.claim.strip())
-    report_result = ReportGenerator(report_data).generate()
+    report_result = ReportGenerator(report_data).generate(renderer_name="html")
     f3_report = F3Report(
         reportTitle=report_result.title,
         reportContent=report_result.content,
-        reportFormat="markdown",
+        reportFormat="html",
     )
 
     return FactCheckDetailDBData(
