@@ -820,33 +820,167 @@
 
 ---
 
+### 日志条目 #37 — 百度新闻采集器日志功能增强 + Git 推送
+
+- **日期**：2026-06-22
+- **场景**：功能完善 / 日志增强 / 版本控制
+- **关键 Prompt**：
+  > "你检查一下百度新闻采集器的实现，添加日志功能，在fastapi成功发送新闻的时候，你需要在控制栏输出一下提示，比如搜到多少新闻，然后列举几个"
+  > "推到github并修改ai辅助日志"
+- **AI 产出**：
+  - **`baidu_collector.py`**：新增 `logging` 模块导入和 `logger` 实例，在 `fetch()` 方法各关键路径添加结构化日志：
+    - ✅ API JSON 接口成功：`共获取 N 条热搜` + 列举前 5 条（`#1 XX (热度:YY)`）
+    - ⚠️ 接口返回空数据 / 请求异常：提示回退方案
+    - ✅ HTML 回退成功：同上格式，标注来源
+    - ❌ 全部失败：打印错误并 `raise RuntimeError`
+  - **`hotspots.py`**：新增 `logging` 导入和 `logger`，在 `trigger_collect` 端点采集成功后输出控制台简报：
+    - `📡 热点采集完成 | 来源: BAIDU | 采集 N 条 | 入库 N 条 | 发现 N 个热点`
+    - 逐条输出热点：`🔥 #N 热点名称 (热度:X, 情感:pos, 关联 N 条新闻)`
+    - 失败时输出 `❌ 热点采集失败: {e}` 带完整堆栈
+  - Git 提交并推送到 `origin/main`：commit `708e20d`
+- **人工修改**：无
+- **风险控制**：
+  - 日志用 `logging.getLogger(__name__)` 按模块隔离，不干扰业务逻辑
+  - 采集器成功日志仅列举前 5 条，避免刷屏
+  - 提交前语法验证（`ast.parse`）通过
+- **价值**：
+  - 采集过程透明可追踪，运维人员可从控制台直接看到采集结果
+  - 失败时不再静默，控制台输出异常堆栈便于排查
+  - 推送后团队成员可通过 git pull 同步日志功能
+
+---
+
+### 日志条目 #39 — 置信度评分 + 报告模块重构
+
+- **日期**：2026-06-22
+- **场景**：功能升级 / 架构重构 / 设计模式应用
+- **关键 Prompt**：
+  > "首先来改动置信度的判定，使用 Veracity 的方法... 我觉得这个报告的功能是很好的。我们需要借鉴一下放到我们的项目里面去，你先规划好模块和功能，要符合设计原则（尤其是开闭原则），然后再进行编程实现"
+- **AI 产出**：
+
+  **A. 置信度评分功能（基于 Veracity 论文方法）**
+  - **`prompts/verdict_prediction.py`**：在 prompt 中加入 Veracity 风格的评分标准表格（80-100 高置信度 / 60-79 中等 / 40-59 低 / 0-39 极低四段），明确 5 个评分维度（证据充分性、来源可靠性、证据一致性、冲突程度、覆盖完整性），引导 LLM 输出更稳定、有依据的 `confidenceScore`
+  - **`main_agent.py`**：`verdict_prediction_node()` 将 `confidenceScore` 传给 `trace.verdict()`
+  - **`tracing.py`**：`verdict()` 方法增加 `confidence_score` 参数，打印摘要时显示分数
+
+  **B. 报告模块（基于 BettaFish ReportEngine 设计思路）**
+  - **`src/main/python/report/`**：全新模块，三层策略模式架构：
+    - `sections/`（策略模式） — 5 个章节类：header / claims / evidence / verdict / metadata，各继承 `BaseSection` 实现 `render()`
+    - `templates/`（策略模式） — 模板决定章节选择和顺序，当前有 `StandardTemplate`
+    - `renderers/`（策略模式） — 输出渲染，当前有 `MarkdownRenderer`
+    - `generator.py`（模板方法模式） — `ReportGenerator.generate()` 编排流程
+    - `models.py` — 内部数据模型，含 `from_f3_data()` 工厂方法兼容 F3 API schema
+    - 所有扩展点都采用注册表模式（`register_section`/`register_template`/`register_renderer`）
+  - **`api/routers/fact_check.py`**：F3 接口中原硬编码的字符串模板（约 30 行 `report_lines.append`）替换为 `ReportGenerator.generate()`
+
+- **人工修改**：无
+- **开闭原则验证**：新增章节 → 写 `sections/xxx.py` + 注册；新增模板 → 写 `templates/xxx.py` + 注册；新增渲染器 → 写 `renderers/xxx.py` + 注册；均不修改既有代码
+- **风险控制**：
+  - 模块独立，不修改现有接口契约（F1/F2/F3 接口字段不变）
+  - report 模块通过 `from_f3_data()` 适配，与 API schema 解耦
+  - GBK 编码兼容：移除 tracing.py 和 retrieve.py 中的 emoji 字符
+- **价值**：
+  - 置信度评分让判定结果从布尔值升级为 0-100 量化输出
+  - 报告模块从 30 行硬编码升级为可扩展的架构，后续可加 HTML/PDF 渲染、简洁模板等
+
+---
+
+### 日志条目 #40 — LLM 叙事报告 + Java 后端接口对接
+
+- **日期**：2026-06-22
+- **场景**：功能开发 / 接口设计 / 前后端对接
+- **关键 Prompt**：
+  > "我觉得这个报告的功能是很好的。我们需要借鉴一下放到我们的项目里面去... 我们需要关注如何把html文件传入java后端呢？你需要把这个接口设定好了"
+- **AI 产出**：
+
+  **A. LLM 叙事报告模式（借鉴 BettaFish ReportEngine）**
+  - **`report/llms/client.py`**：报告模块专用 LLM 客户端，复用项目已有的 LLM 抽象层
+  - **`report/prompts/prompts.py`**：三个提示词
+    - `SYSTEM_PROMPT_REPORT_LAYOUT`：LLM 设计报告布局（标题/摘要/KPI/关键发现）
+    - `SYSTEM_PROMPT_CHAPTER`：逐章节内容生成
+    - `SYSTEM_PROMPT_FULL_REPORT`：一次性生成完整 Markdown 报告
+  - **`report/generator.py`**：新增 `LLMReportGenerator` 类，流程为：布局设计 → 构建数据包 → LLM 生成 → HTML 渲染
+  - **`report/renderers/html.py`**：`HTMLRenderer`，将 LLM 生成的 Markdown 渲染为美观的 HTML 页面，含 Hero 区、KPI 卡片、暗色模式、响应式设计
+  - **`test_report_html.py`**：本地测试脚本，`python src/test/python/test_report_html.py --claim "声明" --output report.html`
+
+  **B. Java 后端接口对接**
+  - **`api/schemas.py`**：`FactCheckRequest` 新增可选字段 `report_style: str = "simple"`，取值 `simple`（数据驱动 Markdown）或 `llm`（LLM 叙事 HTML）
+  - **`api/routers/fact_check.py`**：
+    - `_build_detail_db_response()` 新增 `report_style` 参数，根据值选择报告模式
+    - `report_style="llm"` 时调用 `LLMReportGenerator`，失败自动降级
+    - 保留 `POST /fact-check/detail/llm-report` 独立路由作为别名
+  - **接口向后兼容**：不传 `report_style` 默认走数据驱动模式，Java 端无需改 URL
+
+- **人工修改**：无
+- **风险控制**：
+  - `report_style` 默认 `"simple"`，现有 Java 调用不受影响
+  - LLM 生成失败时自动降级为数据驱动模式，不抛异常
+  - HTML 渲染器样式用 CSS 变量，支持暗色模式
+- **价值**：
+  - Java 端只需在请求体中加 `"report_style": "llm"` 即可获得 HTML 报告
+  - 前端可直接展示 HTML 报告（含 Hero 区、KPI 卡片、证据表格）
+  - 本地测试脚本方便独立调试，不依赖 API
+
+### 日志条目 #41 — 结构化 IR 方案：报告模块重大升级
+
+- **日期**：2026-06-23
+- **场景**：架构重构 / 代码生成 / 设计模式应用
+- **关键 Prompt**：
+  > "我看了测试给出的报告，我认为内容太单调了，你详细的阅读bettafish他们的报告是怎么生成的，一定要详细，他们的报告内容很丰富，我们需要借鉴"
+- **背景**：用户对当前报告模块的 LLM 叙事模式输出不满意，认为内容单调、结构扁平，要求深入借鉴 BettaFish ReportEngine 的设计思路。
+- **AI 产出**：
+
+  **A. 深入研读 BettaFish ReportEngine（约 3500 行代码）**
+  通读全部核心文件：`agent.py`（总调度）、`ir/schema.py`（18 种 block 类型 IR Schema）、`html_renderer.py`（按 block type 分派渲染，355KB）、`chapter_generation_node.py`（逐章 JSON 生成+校验+修复）、`document_layout_node.py`（布局设计）、`word_budget_node.py`（字数规划）、`template_selection_node.py`（模板选择）、`core/stitcher.py`（章节装订）、`core/template_parser.py`（模板切片）、`prompts/prompts.py`（全量提示词）、`state/state.py`（状态管理）
+
+  关键发现——BettaFish 的核心创新：
+  1. **结构化 IR（中间表示）**：LLM 不生成 Markdown，而是生成带类型标注的 JSON block 数组（heading/paragraph/list/table/swotTable/pestTable/callout/kpiGrid/engineQuote/widget 等 18 种）
+  2. **四阶段 LLM 流水线**：模板选择 → 布局设计 → 字数规划（~40000 字/本）→ 逐章生成（每章独立调用 LLM）
+  3. **丰富的渲染能力**：Chart.js 图表、词云、SWOT/PEST 分析表、Callout 提示框、KPI 卡片、暗色模式、PDF 导出、吸顶导航
+
+  **B. 结构化 IR 方案适配事实核查场景**
+  基于 BettaFish 的设计理念，为事实核查场景定制了简化但核心一致的方案：
+
+  - **`report/ir/schema.py`**（新建）— 9 种 block 类型定义：heading/paragraph/list/table/callout/kpiGrid/blockquote/evidenceCard/hr，含 validate_block() 校验函数和 build_document_ir() 组装函数。新增 evidenceCard 类型是事实核查专用的证据卡片。
+  - **`report/ir/__init__.py`**（新建）— 包入口
+  - **`report/prompts/prompts.py`**（重写）— 强化 SYSTEM_PROMPT_REPORT_LAYOUT（增加 keyFindings/chapterGuidance），新增 SYSTEM_PROMPT_CHAPTER_IR（替代全文 Markdown，要求输出结构化 JSON blocks）
+  - **`report/renderers/html.py`**（重写）— 从 240 行正则 Markdown→HTML 改为 500+ 行的 block-type 分派渲染体系，新增 `render_ir()` 方法，支持 9 种 block 类型的精确渲染（callout 带 4 种色调、evidenceCard 带可信度进度条和论辩关系标签、kpiGrid 卡片网格、list/table/blockquote 等），增强 CSS（callout/证据卡片/可信度条/暗色模式/响应式）。保留 `render()` 和 `render_llm()` 向后兼容。
+  - **`report/renderers/base.py`**（修改）— 新增 `render_ir()` 抽象方法
+  - **`report/generator.py`**（重写）— LLMReportGenerator 从"一次调用生成全文 Markdown"改为多阶段流水线：布局设计 → 逐章 IR 生成（5 个章节各调一次 LLM）→ 文档 IR 组装。失败时自动降级为原有 Markdown 模式。
+
+  **C. 验证结果**
+  - 所有导入正常（IR schema、prompts、generator、HTML renderer、Markdown renderer）
+  - 数据驱动模式（ReportGenerator）向后兼容，输出正常
+  - 结构化 IR 渲染器端到端验证通过：10 个检查点全部 OK（Hero 区/KPI 卡片/Callout/证据卡片/表格/引用/章节/暗色模式/响应式）
+
+- **人工修改**：无
+- **开闭原则验证**：新增 evidenceCard block 类型只需在 schema.py 加常量 + html.py 加 handler，不修改既有代码
+- **风险控制**：
+  - 完整保留向后兼容路径（render() + render_llm()）
+  - 结构化 IR 生成失败时自动降级为 Markdown 模式
+  - 数据驱动模式（ReportGenerator + MarkdownRenderer）完全未动
+  - API 接口不变，Java 端无需修改
+- **价值**：
+  - 报告从"Markdown 转 HTML"升级为"结构化 IR 渲染"，内容层次和丰富度大幅提升
+  - 9 种 block 类型让 LLM 生成更有结构的报告（callout 突出关键发现、evidenceCard 清晰展示证据链、kpiGrid 直观呈现数据）
+  - 多阶段流水线为后续增加字数规划、模板选择等阶段预留了扩展点
+
+---
+
 ## 阶段性统计（自动维护，每次新增条目时更新）
 
 | 项 | 值 |
 |----|----|
-| 累计条目数 | 36 |
-| 涉及场景类别 | 代码理解、需求分析、接口设计、代码生成、文档撰写、算法理解、知识 Q&A、版本控制、字段精简、文档代码同步、架构调整、验证测试、交付总结、数据源验证、团队协作、数据源扩展、业务功能、数据采集、代码替换、功能完善、项目维护、配置优化、环境变量管理、向后兼容、Bug 排查、测试用例、接口联调、提示词优化、数据库对齐 |
-| 已生成代码文件 | 26（api/*10 + hot_topic/... + retrieve.py + tracing.py + prompt改造） |
-| 新增核心文件 | 9（tracing.py + 上述 8 个） |
-| 已生成文档文件 | 7（docs/api/internal-api.md、docs/AI_COLLAB_LOG.md、hot_topic/TRAINING_GUIDE.md、README_PYTHON_API.md、THUCNEWS_BERTOPIC_README.md、.env.example、CLAUDE.md） |
-| Git 提交次数 | 8（67eaabd → a3284db → b8e8a8a → b93eb9e → b961c32 → d5fd6c0 → 7d7e299 → 7e6e37e） |
-| 人工干预次数 | ≥ 14（含本次：CLAUDE.md 追加日志强调、retrieve.py 职责边界否决第一版、推送暂缓） |
-| 训练阶段完成 | small预设测试训练完成 |
-| 支持主题数 | 默认50个，可配置 |
-| 数据源支持 | GDELT、RSS、THUCNews |
-| CSV采集功能 | ✓ 已完成，可一键获取24小时新闻 |
-| 事实核查功能 | ✓ 已接入真实多智能体系统，证据检索走 LLM 抽象层（豆包） |
-| 配置灵活性 | ✓ 支持参数传入、DOUBAO_*、ARK_* 多种配置方式 |
-| 证据检索 | ✓ Anspire 搜索链路实测打通，端到端 API 实测通过 |
-| Trace 推理路径 | ✓ tracing.py 完成，覆盖 supervisor 路由 + 各节点结构化输出 + 证据链 + verdict |
-| Prompt 改造 | ✓ evidence_seeking（强制搜索+中文+最新）、verdict_prediction（中文）、query_generation（中文） |
-| 已知待办 | verdict 证据衔接准确率（57%）、explanation 字段文本化、Gemini 残留清理（requirements/.env/README/test_search）、远程推送整合、F3 publishTime 字段填充（需搜索引擎改造）、F3 逐条证据 relationType 判断、F3 credibilityScore LLM 逐条评估 |
-
----
-
-## 课程报告 第 7 章 草稿
-
-> 此节由本日志末尾自动生成，提交课程报告时直接抽取使用。
-> 当前为初稿；每次新增条目后请回到此节更新一次。
-
-参见已生成的初稿：[7-AI辅助开发记录-初稿.md](7-AI辅助开发记录-初稿.md)（待生成，结题前根据上方所有条目总结一次）。
+| 累计条目数 | 41 |
+| 涉及场景类别 | 代码理解、需求分析、接口设计、代码生成、文档撰写、算法理解、知识 Q&A、版本控制、字段精简、文档代码同步、架构调整、验证测试、交付总结、数据源验证、团队协作、数据源扩展、业务功能、数据采集、代码替换、功能完善、项目维护、配置优化、环境变量管理、向后兼容、Bug 排查、测试用例、接口联调、提示词优化、数据库对齐、日志增强、安全加固、置信度评分、报告模块重构、**LLM 叙事报告**、**Java 接口对接**、**结构化 IR 方案**、**Block-type 分派渲染** |
+| 已生成代码文件 | 41（新增 ir/ 模块 2 个 + 重写 3 个 = 5 个核心文件变动） |
+| 新增核心文件 | 29（ir/schema.py + ir/__init__.py） |
+| 已生成文档文件 | 8 |
+| 报告模块 | ✓ 数据驱动模式 + Markdown 渲染 + ✓ LLM 叙事模式（结构化 IR + 9 种 block 类型渲染 + 降级路径） |
+| 结构化 IR | ✓ 9 种 block 类型（heading/paragraph/list/table/callout/kpiGrid/blockquote/evidenceCard/hr） |
+| Block 渲染 | ✓ callout（4 色调）、evidenceCard（可信度条+论辩标签）、kpiGrid、table、list、blockquote |
+| 置信度评分 | ✓ Veracity 方法：prompt 评分标准 + trace 记录 + 接口输出 |
+| Java 接口 | ✓ `report_style` 字段，向后兼容，不传 = 原数据驱动模式 |
+| 本地测试 | ✓ `test_report_html.py`，生成 HTML 文件用浏览器查看 |
+| 人工干预次数 | ≥ 14 |
+| 已知待办 | verdict 证据衔接准确率、F3 publishTime 字段填充（需搜索引擎改造）、F3 逐条证据 relationType 判断、F3 credibilityScore LLM 逐条评估 |

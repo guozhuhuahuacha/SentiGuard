@@ -60,6 +60,8 @@
 | H1   | GET  | `/internal/v1/hotspots`    | 获取热点列表（按热度排序） | 已定义 |
 | F1   | POST | `/internal/v1/fact-check`  | 事实核查（简易版，只返回结论与解释） | 已定义 |
 | F2   | POST | `/internal/v1/fact-check/detail` | 事实核查（详细版，含推理过程与证据链） | 已定义 |
+| F3   | POST | `/internal/v1/fact-check/detail/db` | 事实核查（数据库对齐版） | 已定义 |
+| F4   | POST | `/internal/v1/fact-check/detail/llm-report` | 事实核查（LLM 叙事报告版，额外消耗一次 LLM 调用） | 新增 |
 
 ---
 

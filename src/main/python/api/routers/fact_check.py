@@ -8,6 +8,7 @@ import ast
 import json
 import logging
 import re
+from datetime import datetime
 from fastapi import APIRouter, Depends
 
 from src.main.python.api.deps import verify_internal_token
@@ -27,6 +28,8 @@ from src.main.python.api.schemas import (
     TraceStep,
 )
 from src.main.python.main_agent import FactAgent
+from src.main.python.report import ReportGenerator, LLMReportGenerator
+from src.main.python.report.models import ReportData as ReportModuleData
 
 router = APIRouter(
     prefix="/internal/v1",
@@ -586,8 +589,15 @@ def _extract_evidence_items_from_trace(events: list, claims: list, label: str) -
                     )
 
     return evidence_items
-def _build_detail_db_response(agent: FactAgent, req: FactCheckRequest) -> FactCheckDetailDBData:
-    """执行核查并组装数据库对齐版响应体。"""
+def _build_detail_db_response(agent: FactAgent, req: FactCheckRequest,
+                                report_style: str = "simple") -> FactCheckDetailDBData:
+    """执行核查并组装数据库对齐版响应体。
+
+    Args:
+        agent: FactAgent 实例
+        req: 请求对象
+        report_style: 报告风格，"simple"=数据驱动Markdown, "llm"=LLM叙事HTML
+    """
     results = agent.process_claim(
         req.claim.strip(),
         recursion_limit=300,
@@ -648,36 +658,39 @@ def _build_detail_db_response(agent: FactAgent, req: FactCheckRequest) -> FactCh
         attackCount=attack_count,
     )
 
-    # ---- 5. 构建 report ----
-    report_lines = []
-    report_lines.append(f"# 事实核查报告\n")
-    report_lines.append(f"**核查对象**：{req.claim.strip()}\n")
-    report_lines.append(f"**核查结论**：{conclusion}\n")
-    report_lines.append(f"**置信度**：{confidence_score if confidence_score is not None else 'N/A'}/100\n")
-    report_lines.append("---\n")
-    report_lines.append("## 声明拆解\n")
-    for c in claims:
-        report_lines.append(f"- **声明 {c.claimOrder}**：{c.claimText}\n")
-    report_lines.append("\n## 证据分析\n")
-    for ev in evidence_items:
-        report_lines.append(f"- **声明 {ev.claimOrder}** 相关证据：\n")
-        report_lines.append(f"  - 标题：{ev.evidenceTitle}\n")
-        report_lines.append(f"  - 来源：{ev.sourceName}\n")
-        report_lines.append(f"  - 链接：{ev.evidenceUrl}\n")
-        report_lines.append(f"  - 摘要：{ev.evidenceContent}\n")
-        report_lines.append(f"  - 关系：{ev.relationType}\n")
-        score_text = ev.credibilityScore if ev.credibilityScore is not None else "N/A"
-        report_lines.append(f"  - 可信度：{score_text}\n")
-        report_lines.append(f"  - 发布时间：{ev.publishTime or 'N/A'}\n")
-    if not evidence_items:
-        report_lines.append("（未检索到有效证据）\n")
-    report_lines.append("\n## 最终结论\n")
-    report_lines.append(f"{explanation}\n")
+    # ---- 5. 根据 report_style 选择报告模式 ----
+    f3_like = type("F3Like", (), {})()
+    f3_like.claims = claims
+    f3_like.evidences = evidence_items
+    f3_like.result = f3_result
+
+    report_data = ReportModuleData.from_f3_data(
+        f3_like,
+        run_id=agent.trace.run_id if agent.trace else "",
+        generated_at=datetime.now().isoformat(timespec="seconds"),
+    )
+    report_data.claim = req.claim.strip()
+
+    if report_style == "llm":
+        # LLM 叙事模式 — 生成丰富 HTML 报告，失败时降级
+        try:
+            report_result = LLMReportGenerator(report_data).generate(renderer_name="html")
+            report_format = "html"
+        except Exception:
+            logging.getLogger("fact_check").warning(
+                "LLM 报告生成失败，降级为数据驱动模式", exc_info=True
+            )
+            report_result = ReportGenerator(report_data).generate()
+            report_format = "markdown"
+    else:
+        # 数据驱动模式（默认）— 快速 Markdown
+        report_result = ReportGenerator(report_data).generate()
+        report_format = "markdown"
 
     f3_report = F3Report(
-        reportTitle=f"事实核查报告 — {req.claim.strip()[:50]}",
-        reportContent="".join(report_lines),
-        reportFormat="markdown",
+        reportTitle=report_result.title,
+        reportContent=report_result.content,
+        reportFormat=report_format,
     )
 
     return FactCheckDetailDBData(
@@ -695,6 +708,54 @@ def _build_detail_db_response(agent: FactAgent, req: FactCheckRequest) -> FactCh
 )
 def fact_check_detail_db(req: FactCheckRequest) -> ApiResponse[FactCheckDetailDBData]:
     data = _build_detail_db_response(get_fact_agent(), req)
+    return ApiResponse[FactCheckDetailDBData](data=data)
+
+
+# ======================================================================
+# LLM 叙事报告接口 — 额外功能，不替换原有 F3 数据驱动模式
+# ======================================================================
+
+
+@router.post(
+    "/fact-check/detail/llm-report",
+    response_model=ApiResponse[FactCheckDetailDBData],
+    summary="事实核查（LLM 叙事报告版，含 AI 生成的丰富 HTML 报告）",
+)
+def fact_check_llm_report(req: FactCheckRequest) -> ApiResponse[FactCheckDetailDBData]:
+    """LLM 叙事报告版。
+
+    在 F3 数据库对齐版的基础上，使用 LLM 生成叙事性 HTML 报告。
+    返回结构与 F3 完全一致，但 report.reportFormat = "html"，
+    report.reportContent 为完整 HTML 页面（含 Hero 区、KPI 卡片、证据分析等）。
+
+    此接口额外消耗一次 LLM 调用（约 30-40s），失败时自动降级为 F3 数据驱动模式。
+    """
+    agent = get_fact_agent()
+    data = _build_detail_db_response(agent, req)
+
+    # 构造 ReportData
+    f3_like = type("F3Like", (), {})()
+    f3_like.claims = data.claims
+    f3_like.evidences = data.evidences
+    f3_like.result = data.result
+
+    report_data = ReportModuleData.from_f3_data(
+        f3_like,
+        run_id=agent.trace.run_id if agent.trace else "",
+        generated_at=datetime.now().isoformat(timespec="seconds"),
+    )
+    report_data.claim = req.claim.strip()
+
+    try:
+        llm_result = LLMReportGenerator(report_data).generate(renderer_name="html")
+        data.report.reportTitle = llm_result.title
+        data.report.reportContent = llm_result.content
+        data.report.reportFormat = "html"
+    except Exception:
+        logging.getLogger("fact_check").warning(
+            "LLM 报告生成失败，降级为数据驱动 Markdown", exc_info=True
+        )
+
     return ApiResponse[FactCheckDetailDBData](data=data)
 
 

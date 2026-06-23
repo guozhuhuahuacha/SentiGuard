@@ -89,7 +89,15 @@ mvn test
 
 独立子包，BERTopic 端到端聚类（Embedding → UMAP → HDBSCAN → c-TF-IDF）。核心是可调用的 Python API 而非 CLI：`topic_model_trainer.py` 的 `TopicModelTrainer` 类 + `topic_model_config.py` 集中配置（支持 test/small/medium/large/full 预设、断点续训）。所有数据源（GDELT / RSS / THUCNews）统一输出 `config.DOC_COLUMNS` schema。`hot_topic/config.py` 的 `REPO_ROOT` 通过 `parents[4]` 推算，移动该文件需同步调整。
 
-### 6. API 响应体约定
+### 6. 报告模块（`src/main/python/report/`）
+
+两层架构，符合开闭原则：
+- **数据驱动模式**（`ReportGenerator`）：用 section/template/renderer 三层策略模式将结构化数据填入模板章节，输出 Markdown。
+- **LLM 叙事模式**（`LLMReportGenerator`，主力路径）：多阶段流水线（布局设计 → 逐章生成结构化 IR → 文档 IR 组装 → HTML 渲染），采用 **结构化 IR（中间表示）** 方案——LLM 输出 9 种 block 类型的 JSON（heading/paragraph/list/table/callout/kpiGrid/blockquote/evidenceCard/hr），渲染器按 block type 分派渲染，而非正则转换 Markdown。失败时自动降级为 Markdown 模式。
+
+`report/ir/schema.py` 定义 block 类型和校验函数，`report/renderers/html.py` 用 `render_ir()` 方法处理 IR 渲染（callout 四色调、evidenceCard 带可信度进度条、kpiGrid 卡片网格等）。
+
+### 7. API 响应体约定
 
 FastAPI 与 Spring Boot 都遵循统一响应体：`{code, message, data}`，`code=0` 表示成功。FastAPI 端在 `api/app.py` 用全局异常处理器保证错误响应也符合该格式。
 

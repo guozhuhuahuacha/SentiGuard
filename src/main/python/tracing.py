@@ -118,11 +118,13 @@ class TraceCollector:
             "credibility_score": credibility_score,
         })
 
-    def verdict(self, label: Optional[str], explanation: Optional[str]) -> None:
+    def verdict(self, label: Optional[str], explanation: Optional[str],
+                 confidence_score: Optional[int] = None) -> None:
         self._add({
             "type": "verdict",
             "label": label,
             "explanation": explanation,
+            "confidenceScore": confidence_score,
         })
 
     # ------------------------------------------------------------------
@@ -153,7 +155,7 @@ class TraceCollector:
 
     def _print_summary(self) -> None:
         print("\n" + "=" * 80)
-        print(f"🔍 FactAgent Trace  <{self._run_id}>")
+        print(f"[FactAgent Trace] <{self._run_id}>")
         print("=" * 80)
         print(f"claim: {_short(self._claim, 300)}")
 
@@ -173,6 +175,9 @@ class TraceCollector:
             elif t == "verdict":
                 print("\n  ── verdict ──")
                 print(f"     label: {e['label']}")
+                score = e.get("confidenceScore")
+                if score is not None:
+                    print(f"     confidenceScore: {score}")
                 print(f"     explanation: {_short(e['explanation'], 400)}")
 
         print("\n" + "=" * 80)

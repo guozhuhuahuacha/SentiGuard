@@ -60,10 +60,10 @@ class SearchEngineRetriever:
         available = list_search_engines()
         if available:
             self.search_engine = get_search_engine(available[0])
-            print(f"🔍 使用搜索引擎: {available[0]}")
+            print(f"[Search] 使用搜索引擎: {available[0]}")
         else:
             self.search_engine = None
-            print("⚠️  未找到可用搜索引擎")
+            print("[Warning] 未找到可用搜索引擎")
 
     def create_content_dict(self, content: list, **kwargs) -> Dict:
         resp_content = {"content": content}
@@ -86,7 +86,7 @@ class SearchEngineRetriever:
                         "published_date": r.published_date,
                         "score": r.score,
                     })
-                print(f"🔍 搜索到 {len(organic_results)} 条结果")
+                print(f"[Search] 搜索到 {len(organic_results)} 条结果")
                 return organic_results
             except Exception as e:
                 logging.error(f"Search engine error: {e}")

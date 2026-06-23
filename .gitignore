@@ -55,3 +55,14 @@ logs/
 # Personal reference docs (not for repo)
 *.doc
 *.docx
+
+# Temporary test outputs
+report_test_output.txt
+test_html.txt
+test_report.html
+test_report_output.html
+test_report_output2.html
+test_simple.txt
+
+# Personal literature references (PDFs not for repo)
+文献/

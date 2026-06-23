@@ -237,7 +237,8 @@ class FactAgent:
             sr = result.get("structured_response", {})
             self.trace.step("verdict_predictor", sr)
             res = sr.get("result") if isinstance(sr.get("result"), dict) else sr
-            self.trace.verdict(res.get("label"), res.get("explanation"))
+            self.trace.verdict(res.get("label"), res.get("explanation"),
+                               res.get("confidenceScore"))
             return Command(
                 update={"messages": [
                     HumanMessage(content=str(sr.get("result")),
