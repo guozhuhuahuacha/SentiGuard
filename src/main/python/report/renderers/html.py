@@ -957,6 +957,109 @@ class HTMLRenderer(BaseRenderer):
   .claim-verdict .verdict-value {{ color: var(--text); }}
 
   /* ================================================================
+     舆论监测 — 立场分布条 & 观点聚类卡片
+     ================================================================ */
+  .distro-section {{ margin: 16px 0; }}
+  .distro-section h4 {{ font-size: 1em; color: var(--text); margin-bottom: 10px; }}
+  .distro-bar {{
+    display: flex;
+    height: 36px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-size: 0.82em;
+    font-weight: 600;
+  }}
+  .distro-seg {{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    min-width: 0;
+    transition: width 0.4s ease;
+  }}
+  .distro-seg span {{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 8px; }}
+  .seg-support {{ background: var(--good); }}
+  .seg-oppose {{ background: var(--bad); }}
+  .seg-neutral {{ background: var(--muted); }}
+  .seg-positive {{ background: #52b788; }}
+  .seg-negative {{ background: #ef4444; }}
+
+  .opinion-cluster-card {{
+    margin: 20px 0;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-light);
+  }}
+  .cluster-header {{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }}
+  .cluster-stance {{
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.85em;
+    letter-spacing: 0.3px;
+  }}
+  .cluster-stance.support {{ background: var(--good-bg); color: var(--good); }}
+  .cluster-stance.oppose {{ background: var(--bad-bg); color: var(--bad); }}
+  .cluster-stance.neutral {{ background: var(--neutral-bg); color: var(--neutral); }}
+  .cluster-label {{
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--text);
+  }}
+  .cluster-count {{
+    margin-left: auto;
+    font-size: 0.85em;
+    color: var(--muted);
+    background: var(--bg);
+    padding: 4px 12px;
+    border-radius: 12px;
+  }}
+  .cluster-body {{ }}
+  .cluster-summary {{
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 12px;
+  }}
+  .cluster-args {{
+    margin: 10px 0;
+    padding-left: 20px;
+  }}
+  .cluster-args li {{
+    margin: 6px 0;
+    line-height: 1.7;
+    color: var(--text);
+  }}
+  .cluster-meta {{
+    font-size: 0.85em;
+    color: var(--muted);
+    margin: 8px 0;
+  }}
+  .cluster-excerpts {{
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-light);
+  }}
+  .excerpt {{
+    margin: 8px 0;
+    padding: 10px 14px;
+    background: var(--bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-style: italic;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+  }}
+
+  /* ================================================================
      响应式
      ================================================================ */
   @media (max-width: 700px) {{
