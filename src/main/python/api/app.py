@@ -14,7 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from src.main.python.api.routers import fact_check, hotspots
+from src.main.python.api.routers import fact_check, hotspots, opinion
 
 app = FastAPI(
     title="SentiGuard Internal API",
@@ -24,6 +24,7 @@ app = FastAPI(
 
 app.include_router(hotspots.router)
 app.include_router(fact_check.router)
+app.include_router(opinion.router)
 
 
 # ---------------------------------------------------------------------------
