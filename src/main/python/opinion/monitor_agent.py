@@ -321,7 +321,13 @@ class OpinionMonitorAgent:
         """执行完整舆论监测流水线。
 
         Returns:
-            {"portrait": OpinionPortrait, "html": str}
+            {
+                "portrait": OpinionPortrait,         # 舆论画像
+                "opinions": List[OpinionItem],        # 所有原始观点
+                "clusters": List[StanceCluster],      # 立场簇
+                "searchMeta": dict,                   # 搜索元信息
+                "html": str,                          # HTML 报告
+            }
         """
         logger.info("=== 舆论监测开始: %s ===", event)
 
@@ -344,13 +350,42 @@ class OpinionMonitorAgent:
         # ⑤ 构建画像
         portrait = self._build_portrait(event, opinions, clustering)
 
-        # ⑥ 生成 HTML 报告
+        # ⑥ 构建立场簇对象列表
+        clusters_list = []
+        for i, c in enumerate(clustering.get("clusters", [])):
+            clusters_list.append(StanceCluster(
+                clusterId=c.get("clusterId", i + 1),
+                stance=c.get("stance", "neutral"),
+                label=c.get("label", ""),
+                summary=c.get("summary", ""),
+                representativeArguments=c.get("representativeArguments", []),
+                opinionCount=c.get("opinionCount", 0),
+                speakerBreakdown=c.get("speakerBreakdown", {}),
+                sentimentRatio=c.get("sentimentRatio", {}),
+                sampleExcerpts=c.get("sampleExcerpts", []),
+            ))
+
+        # ⑦ 生成 HTML 报告
         from .generator import OpinionReportGenerator
         report_gen = OpinionReportGenerator(portrait)
         html = report_gen.generate()
 
+        # ⑧ 搜索元信息
+        search_meta = {
+            "queriesGenerated": len(queries),
+            "resultsFound": len(search_results),
+            "opinionsExtracted": len(opinions),
+            "sourcesUnique": portrait.totalSources,
+        }
+
         logger.info("=== 舆论监测完成: %s（风险: %s）===", event, portrait.riskLevel)
-        return {"portrait": portrait, "html": html}
+        return {
+            "portrait": portrait,
+            "opinions": opinions,
+            "clusters": clusters_list,
+            "searchMeta": search_meta,
+            "html": html,
+        }
 
 
 __all__ = ["OpinionMonitorAgent"]

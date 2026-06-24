@@ -9,7 +9,9 @@ from .schemas import (
     StanceCluster,
     OpinionPortrait,
     OpinionAnalyzeRequest,
-    OpinionReportData,
+    OpinionReport,
+    OpinionSearchMeta,
+    OpinionDetailData,
 )
 
 __all__ = [
@@ -19,5 +21,7 @@ __all__ = [
     "StanceCluster",
     "OpinionPortrait",
     "OpinionAnalyzeRequest",
-    "OpinionReportData",
+    "OpinionReport",
+    "OpinionSearchMeta",
+    "OpinionDetailData",
 ]

@@ -99,17 +99,39 @@ class OpinionPortrait(BaseModel):
 
 
 # ============================================================
-# API 请求/响应
+# API 请求/响应（对应 FactCheckDetailDBData 的结构层级）
 # ============================================================
 class OpinionAnalyzeRequest(BaseModel):
+    """舆论监测请求"""
     event: str = Field(..., min_length=1, max_length=500, description="事件名称或关键词")
     description: str = Field(default="", max_length=2000, description="事件补充描述（可选）")
 
 
-class OpinionReportData(BaseModel):
-    """API 响应 data 字段"""
-    portrait: OpinionPortrait
-    report: dict = Field(default_factory=dict, description="HTML 报告，含 title/content/format")
+class OpinionReport(BaseModel):
+    """HTML 报告（对应 F3Report）"""
+    reportTitle: str = Field(default="", description="报告标题")
+    reportContent: str = Field(default="", description="完整 HTML 报告")
+    reportFormat: str = Field(default="html", description="报告格式：html")
+
+
+class OpinionSearchMeta(BaseModel):
+    """搜索元信息"""
+    queriesGenerated: int = Field(default=0, description="生成的搜索查询数")
+    resultsFound: int = Field(default=0, description="搜索到的结果数")
+    opinionsExtracted: int = Field(default=0, description="成功抽取的观点数")
+    sourcesUnique: int = Field(default=0, description="不重复来源数")
+
+
+class OpinionDetailData(BaseModel):
+    """API 响应 data 字段（对应 FactCheckDetailDBData）
+
+    包含完整的舆论监测结果：画像 + 原始观点 + 立场簇 + 报告 + 搜索元信息
+    """
+    portrait: OpinionPortrait = Field(..., description="舆论画像（核心结果）")
+    opinions: List[OpinionItem] = Field(default_factory=list, description="所有抽取的原始观点")
+    clusters: List[StanceCluster] = Field(default_factory=list, description="归并后的立场簇")
+    report: OpinionReport = Field(..., description="HTML 报告")
+    searchMeta: OpinionSearchMeta = Field(default_factory=OpinionSearchMeta, description="搜索过程元信息")
 
 
 __all__ = [
@@ -117,5 +139,7 @@ __all__ = [
     "StanceCluster",
     "OpinionPortrait",
     "OpinionAnalyzeRequest",
-    "OpinionReportData",
+    "OpinionReport",
+    "OpinionSearchMeta",
+    "OpinionDetailData",
 ]
