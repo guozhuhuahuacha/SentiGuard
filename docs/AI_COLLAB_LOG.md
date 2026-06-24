@@ -1027,9 +1027,9 @@
 
 | 项 | 值 |
 |----|----|
-| 累计条目数 | 50 |
-| 涉及场景类别 | 代码理解、需求分析、接口设计、代码生成、文档撰写、算法理解、知识 Q&A、版本控制、字段精简、文档代码同步、架构调整、验证测试、交付总结、数据源验证、团队协作、数据源扩展、业务功能、数据采集、代码替换、功能完善、项目维护、配置优化、环境变量管理、向后兼容、Bug 排查、测试用例、接口联调、提示词优化、数据库对齐、日志增强、安全加固、置信度评分、报告模块重构、**LLM 叙事报告**、**Java 接口对接**、**结构化 IR 方案**、**Block-type 分派渲染**、**搜索服务优化**、**接口重构**、**证据模型重构**、**证据粒度优化**、**LangGraph 新节点**、**max_tokens 默认值修复**、**DeepLLMReportGenerator**、**报告生成防御性加固**、**三阶段HTML组装重构** |
-| 已生成代码文件 | 55（新增 evidence_merging.py + 重构 evidence_seeking.py + 重构 fact_check.py + 修改 main_agent.py + 修改 llms/* 三个 client + 修改 report/generator.py + 修改 report/prompts/prompts.py + 修改 prompts/deep_decomposer.py + 修改 report/renderers/html.py） |
+| 累计条目数 | 51 |
+| 涉及场景类别 | 代码理解、需求分析、接口设计、代码生成、文档撰写、算法理解、知识 Q&A、版本控制、字段精简、文档代码同步、架构调整、验证测试、交付总结、数据源验证、团队协作、数据源扩展、业务功能、数据采集、代码替换、功能完善、项目维护、配置优化、环境变量管理、向后兼容、Bug 排查、测试用例、接口联调、提示词优化、数据库对齐、日志增强、安全加固、置信度评分、报告模块重构、**LLM 叙事报告**、**Java 接口对接**、**结构化 IR 方案**、**Block-type 分派渲染**、**搜索服务优化**、**接口重构**、**证据模型重构**、**证据粒度优化**、**LangGraph 新节点**、**max_tokens 默认值修复**、**DeepLLMReportGenerator**、**报告生成防御性加固**、**三阶段HTML组装重构**、**舆论监测模块** |
+| 已生成代码文件 | 65（新增 opinion/ 包 9 文件 + 新增 api/routers/opinion.py + 修改 report/renderers/html.py + 修改 api/app.py） |
 | 新增核心文件 | 30（+ evidence_merging.py） |
 | 已生成文档文件 | 8 |
 | 证据模型 | ✓ LLM 逐条判定 relationType + ✓ 逐条搜索结果独立为证据 + ✓ evidence_merger 合并同事件多来源 |
@@ -1327,3 +1327,44 @@
   - CSS 质量有保障（IR 渲染器管理，不再靠 LLM 手写）
   - 失败隔离：单个子声明失败不影响整体报告
   - 可观察：每张卡片生成打一行日志，用户可见进度
+
+---
+
+### 日志条目 #51 — 舆论监测模块（OpinionMonitorAgent + HTML 报告）
+
+- **日期**：2026-06-24
+- **场景**：功能开发 / 新模块设计
+- **关键 Prompt**：
+  > "现在我需要监控舆论，也就是人们对于这个事情的看法。请你先仔细地参考bettafish项目的实现思路，给出一个设计方案，包括有哪些模块实现哪些功能。最终的目的还是生成html报告"
+  > "可以，要符合开闭原则，已有代码尽量别动"
+- **背景**：现有系统只做事实核查（声明真假），用户需要新增舆论监测功能（分析公众对事件的看法/情感/立场分布）。
+- **AI 产出**：
+
+  **A. 设计方案（参考 BettaFish 多智能体 + 反思循环）**
+  - 5 步流水线：搜索查询生成 → 批量搜索 → 逐条观点抽取 → 观点聚类 → HTML 报告
+  - 与事实核查的关键差异：搜"网友看法"而非"法院判决"，输出立场分布而非真/假判定
+
+  **B. `opinion/` 包（9 个新文件，零改动既有代码）**
+  - `opinion/schemas.py` — 数据模型（OpinionItem / StanceCluster / OpinionPortrait）
+  - `opinion/monitor_agent.py` — 主编排 Agent（5 步流水线，每步有降级）
+  - `opinion/generator.py` — HTML 报告生成器（复用 HTMLRenderer.render_framework + CSS 变量体系）
+  - `opinion/prompts/` — 4 个专用 prompt（搜索查询生成 / 观点立场抽取 / 立场聚类 / 舆论总结）
+  - 每步都有 fallback：搜索失败→模板查询、抽取失败→跳过、聚类失败→默认分布
+
+  **C. API 端点（新文件，不修改既有路由）**
+  - `POST /internal/v1/opinion/analyze`
+  - 新增 `api/routers/opinion.py` + `api/app.py`（+2行注册，最小侵入）
+
+  **D. CSS 扩展（`report/renderers/html.py`）**
+  - 新增立场分布条（`.distro-bar`）、观点聚类卡片（`.opinion-cluster-card`）、立场标签
+  - 插在既有关闭 `</style>` 前，不修改任何已有 CSS 规则
+
+- **风险控制**：
+  - 完全遵循开闭原则：所有新代码在 `opinion/` 新包中，`api/routers/opinion.py` 新文件
+  - 仅修改 `api/app.py`（+1 import + 1 include_router）和 `report/renderers/html.py`（+CSS）
+  - 复用 `search_retrieve_news`、`create_chat_model`、`render_framework` 等现有基础设施
+  - 每步 LLM 调用独立，单步失败不影响整体
+- **价值**：
+  - 系统从"单一事实核查"扩展到"事实核查 + 舆论监测"双能力
+  - 立场分布条 + 聚类卡片提供直观的舆论可视化
+  - 风险预警机制（low/medium/high/critical）辅助决策
