@@ -68,6 +68,10 @@ class ReportGenerator:
         template_name: str = "standard",
         renderer_name: str = "markdown",
     ) -> ReportResult:
+        # HTML 格式使用框架渲染（与深度报告相同模板/CSS）
+        if renderer_name == "html":
+            return self._generate_html()
+
         template_cls = get_template(template_name)
         template = template_cls(self.data)
         section_names = template.get_section_names()
@@ -89,6 +93,128 @@ class ReportGenerator:
             content=content,
             format=renderer_name,
         )
+
+    def _generate_html(self) -> ReportResult:
+        """HTML 报告：使用 render_framework 骨架 + 数据驱动卡片（与深度报告同模板）"""
+        from .renderers.html import HTMLRenderer
+        from .models import ClaimItem as ReportClaimItem
+
+        renderer = HTMLRenderer()
+        data = self.data
+        result = data.result
+
+        # 构建 KPI
+        kpis = LLMReportGenerator._build_kpis(result)
+
+        # 构建 layout
+        layout = {
+            "title": f"事实核查报告 — {data.claim[:50]}{'...' if len(data.claim) > 50 else ''}",
+            "summary": "",
+            "keyFindings": [],
+            "kpis": kpis,
+        }
+
+        # 声明拆解列表
+        claim_texts = [c.claimText for c in data.claims] if data.claims else []
+
+        # 渲染框架
+        framework = renderer.render_framework(layout, result=result, claim_texts=claim_texts)
+
+        # 数据驱动卡片：按子声明分组证据
+        claim_evidences = self._build_claim_evidence_map()
+        cards = []
+        for item in claim_evidences:
+            cards.append(self._build_claim_card_html_fallback(item))
+
+        all_cards = "\n".join(cards) if cards else '<p class="section-desc">暂无证据数据。</p>'
+        html_content = framework.replace("{claim_sections}", all_cards)
+
+        return ReportResult(
+            title=layout["title"],
+            sections=[SectionOutput(title=layout["title"], content=html_content, order=1)],
+            content=html_content,
+            format="html",
+        )
+
+    def _build_claim_evidence_map(self) -> List[Dict[str, Any]]:
+        """按 claimOrder 将证据分组到对应的子声明"""
+        data = self.data
+        claim_map = {}
+        for c in data.claims:
+            claim_map[c.claimOrder] = {
+                "order": c.claimOrder,
+                "text": c.claimText,
+                "type": c.claimType,
+                "evidences": [],
+            }
+        for e in data.evidences:
+            order = e.claimOrder
+            if order not in claim_map:
+                claim_map[order] = {
+                    "order": order,
+                    "text": f"子声明 #{order}",
+                    "type": "verifiable",
+                    "evidences": [],
+                }
+            claim_map[order]["evidences"].append({
+                "title": e.evidenceTitle or "",
+                "content": (e.evidenceContent or "")[:2000],
+                "source": e.sourceName or "",
+                "url": e.evidenceUrl or "",
+                "relation": e.relationType or "neutral",
+                "credibility": e.credibilityScore,
+            })
+        return [claim_map[k] for k in sorted(claim_map.keys())]
+
+    def _build_claim_card_html_fallback(self, item: Dict[str, Any]) -> str:
+        """数据驱动的 HTML 卡片（不调 LLM）"""
+        order = item.get("order", "?")
+        text = item.get("text", "")
+        ctype = item.get("type", "verifiable")
+        parts = [
+            '<div class="claim-card">',
+            '<div class="claim-card-header">',
+            f'<span class="claim-number">子声明 {order}</span>',
+            f'<span class="claim-type-badge">{ctype}</span>',
+            "</div>",
+            f'<blockquote class="claim-text">{text}</blockquote>',
+            '<div class="claim-analysis"><h4>证据列表</h4></div>',
+            '<div class="evidence-list">',
+        ]
+        for ev in item.get("evidences", []):
+            rel = ev.get("relation", "neutral")
+            rel_label = {"support": "支持", "attack": "反驳", "neutral": "中性"}.get(rel, "中性")
+            cred = ev.get("credibility")
+            cred_html = ""
+            if cred is not None:
+                cred_int = max(0, min(100, int(cred)))
+                cred_class = "high" if cred_int >= 60 else ("mid" if cred_int >= 30 else "low")
+                cred_html = (
+                    '<div class="evidence-credibility">'
+                    '<span class="cred-label">可信度</span>'
+                    f'<div class="cred-bar"><div class="cred-fill {cred_class}" style="width:{cred_int}%"></div></div>'
+                    f'<span class="cred-value">{cred_int}/100</span>'
+                    "</div>"
+                )
+            parts.append(
+                '<div class="evidence-card">'
+                '<div class="evidence-header">'
+                f'<span class="evidence-relation {rel}">{rel_label}</span>'
+                f'<span class="evidence-claim">{ev.get("source", "")}</span>'
+                "</div>"
+                '<div class="evidence-body">'
+                f'<div class="evidence-title">{ev.get("title", "")}</div>'
+                f'<div class="evidence-content">{ev.get("content", "")}</div>'
+                f"{cred_html}"
+                "</div>"
+                '<div class="evidence-footer">'
+                f'<a class="evidence-source" href="{ev.get("url", "")}" target="_blank">查看原文 →</a>'
+                "</div>"
+                "</div>"
+            )
+        parts.append("</div>")  # evidence-list
+        parts.append("</div>")  # claim-card
+        return "\n".join(parts)
 
 
 class LLMReportGenerator:

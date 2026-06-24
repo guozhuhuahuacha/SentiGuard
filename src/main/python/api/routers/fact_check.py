@@ -545,11 +545,21 @@ def _infer_relation_type(label: str, evidence_count: int) -> str:
 
 
 def _extract_claims_from_trace(events: list, fallback_claim: str = "") -> list:
-    """从 trace events 中提取所有可核查声明列表。"""
+    """从 trace events 中提取所有可核查声明列表（最多 4 条）。"""
+    MAX_CLAIMS = 4
     claims = []
     seen = set()
 
+    def _truncate():
+        """截断到 MAX_CLAIMS 并重新编号"""
+        if len(claims) > MAX_CLAIMS:
+            del claims[MAX_CLAIMS:]
+        for i, c in enumerate(claims):
+            c.claimOrder = i + 1
+
     def add_claim(text: str, claim_type: str = "verifiable"):
+        if len(claims) >= MAX_CLAIMS:
+            return
         value = str(text or "").strip()
         if not value or value in seen:
             return
@@ -636,6 +646,7 @@ def _extract_claims_from_trace(events: list, fallback_claim: str = "") -> list:
                 return claims
 
     add_claim(fallback_claim, "verifiable")
+    _truncate()
     return claims
 
 
