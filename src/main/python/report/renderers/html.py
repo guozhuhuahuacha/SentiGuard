@@ -384,7 +384,7 @@ class HTMLRenderer(BaseRenderer):
     # ================================================================
 
     def _wrap_html(self, title: str, body: str, kpis: Any = None) -> str:
-        """生成完整 HTML 页面（含增强 CSS）"""
+        """生成完整 HTML 页面（借鉴 BettaFish 设计风格，丰富的 CSS 变量与视觉层次）"""
         return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -392,21 +392,34 @@ class HTMLRenderer(BaseRenderer):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{self._escape(title)}</title>
 <style>
+  /* ================================================================
+     CSS 变量体系（借鉴 BettaFish themeTokens 设计）
+     ================================================================ */
   :root {{
-    --bg: #ffffff;
+    --bg: #f8f9fc;
+    --surface: #ffffff;
     --text: #1a1a2e;
-    --muted: #6c757d;
-    --border: #e9ecef;
+    --text-secondary: #5a6178;
+    --muted: #8b92a8;
+    --border: #e2e6ef;
+    --border-light: #eef0f6;
     --accent: #4361ee;
-    --accent-light: #eef0ff;
+    --accent-light: #e8ecff;
+    --accent-gradient: linear-gradient(135deg, #4361ee, #3a0ca3);
     --good: #2d6a4f;
     --good-bg: #d8f3dc;
+    --good-light: #b7e4c7;
     --bad: #9b2226;
     --bad-bg: #f8d7da;
+    --bad-light: #f1c0c3;
     --neutral: #6c757d;
     --neutral-bg: #e9ecef;
-    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+    --radius-sm: 8px;
     --radius: 12px;
+    --radius-lg: 16px;
     --callout-info: #4361ee;
     --callout-info-bg: #eef0ff;
     --callout-warning: #e8590c;
@@ -418,18 +431,27 @@ class HTMLRenderer(BaseRenderer):
   }}
   @media (prefers-color-scheme: dark) {{
     :root {{
-      --bg: #0f0f1a;
-      --text: #e0e0e0;
-      --muted: #9ca3af;
-      --border: #2d2d44;
+      --bg: #0a0a14;
+      --surface: #141420;
+      --text: #e4e6f0;
+      --text-secondary: #9ca3af;
+      --muted: #6b7280;
+      --border: #2a2a3e;
+      --border-light: #1f1f32;
       --accent: #6c8cff;
       --accent-light: #1a1a3e;
+      --accent-gradient: linear-gradient(135deg, #6c8cff, #5a2dca);
       --good: #52b788;
       --good-bg: #1b3a2a;
+      --good-light: #2d6a4f;
       --bad: #ef4444;
       --bad-bg: #3b1a1a;
-      --neutral-bg: #2d2d44;
-      --shadow: 0 2px 8px rgba(0,0,0,0.3);
+      --bad-light: #6b2a2a;
+      --neutral: #9ca3af;
+      --neutral-bg: #2a2a3e;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.15);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.25);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.35);
       --callout-info: #6c8cff;
       --callout-info-bg: #1a1a3e;
       --callout-warning: #ff922b;
@@ -440,97 +462,275 @@ class HTMLRenderer(BaseRenderer):
       --callout-danger-bg: #3b1a1a;
     }}
   }}
+
+  /* ================================================================
+     基础重置与排版
+     ================================================================ */
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
   body {{
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.8;
-    max-width: 960px;
+    max-width: 1000px;
     margin: 0 auto;
-    padding: 24px 20px;
+    padding: 32px 24px;
+    -webkit-font-smoothing: antialiased;
   }}
 
-  /* Hero 区域 */
-  .hero {{ margin-bottom: 32px; padding: 32px; background: var(--accent-light); border-radius: var(--radius); }}
-  .hero h1 {{ font-size: 1.8em; margin-bottom: 16px; color: var(--accent); }}
-  .hero .summary {{ font-size: 1.05em; color: var(--text); line-height: 1.8; }}
-  .findings {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 20px; }}
-  .finding {{ padding: 12px 16px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--accent); }}
-  .finding strong {{ display: block; margin-bottom: 4px; color: var(--accent); }}
-  .finding p {{ font-size: 0.9em; color: var(--muted); margin: 0; }}
+  /* ================================================================
+     Hero 区域（报告标题、摘要、关键发现）
+     ================================================================ */
+  .hero {{
+    margin-bottom: 36px;
+    padding: 36px 32px;
+    background: var(--accent-gradient);
+    border-radius: var(--radius-lg);
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+  }}
+  .hero::before {{
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    pointer-events: none;
+  }}
+  .hero::after {{
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: -10%;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+    pointer-events: none;
+  }}
+  .hero h1 {{ font-size: 1.8em; margin-bottom: 12px; font-weight: 700; letter-spacing: -0.3px; position: relative; z-index: 1; }}
+  .hero .summary {{ font-size: 1.05em; opacity: 0.9; line-height: 1.8; position: relative; z-index: 1; max-width: 800px; }}
+  .findings {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 24px; position: relative; z-index: 1; }}
+  .finding {{
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(8px);
+    border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.15);
+  }}
+  .finding strong {{ display: block; margin-bottom: 4px; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }}
+  .finding p {{ font-size: 0.95em; margin: 0; opacity: 0.95; }}
 
-  /* KPI 卡片 */
-  .kpi-row {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 32px; }}
-  .kpi-card {{ padding: 16px; border-radius: var(--radius); text-align: center; box-shadow: var(--shadow); }}
-  .kpi-card.good {{ background: var(--good-bg); }}
-  .kpi-card.bad {{ background: var(--bad-bg); }}
-  .kpi-card.neutral {{ background: var(--neutral-bg); }}
-  .kpi-label {{ font-size: 0.8em; color: var(--muted); margin-bottom: 4px; }}
-  .kpi-value {{ font-size: 1.4em; font-weight: 700; }}
+  /* ================================================================
+     KPI 卡片行
+     ================================================================ */
+  .kpi-row {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+    margin-bottom: 36px;
+  }}
+  .kpi-card {{
+    padding: 20px 16px;
+    border-radius: var(--radius);
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    background: var(--surface);
+  }}
+  .kpi-card:hover {{
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }}
+  .kpi-card.good {{ border-top: 3px solid var(--good); }}
+  .kpi-card.bad {{ border-top: 3px solid var(--bad); }}
+  .kpi-card.neutral {{ border-top: 3px solid var(--muted); }}
+  .kpi-label {{ font-size: 0.8em; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }}
+  .kpi-value {{ font-size: 1.6em; font-weight: 700; }}
+  .kpi-card.good .kpi-value {{ color: var(--good); }}
+  .kpi-card.bad .kpi-value {{ color: var(--bad); }}
 
-  /* 章节 */
+  /* ================================================================
+     章节
+     ================================================================ */
   .chapter {{ margin-bottom: 32px; }}
 
-  /* Callout 提示框 */
-  .callout {{ display: flex; gap: 12px; padding: 16px; margin: 16px 0; border-radius: var(--radius); border-left: 4px solid; }}
+  /* ================================================================
+     Callout 提示框（四色调）
+     ================================================================ */
+  .callout {{
+    display: flex;
+    gap: 14px;
+    padding: 18px 20px;
+    margin: 20px 0;
+    border-radius: var(--radius);
+    border-left: 4px solid;
+    box-shadow: var(--shadow-sm);
+  }}
   .callout-info {{ background: var(--callout-info-bg); border-color: var(--callout-info); }}
   .callout-warning {{ background: var(--callout-warning-bg); border-color: var(--callout-warning); }}
   .callout-success {{ background: var(--callout-success-bg); border-color: var(--callout-success); }}
   .callout-danger {{ background: var(--callout-danger-bg); border-color: var(--callout-danger); }}
-  .callout-icon {{ font-size: 1.3em; line-height: 1.4; flex-shrink: 0; }}
-  .callout-title {{ font-weight: 600; margin-bottom: 6px; }}
+  .callout-icon {{ font-size: 1.4em; line-height: 1.4; flex-shrink: 0; margin-top: 1px; }}
+  .callout-title {{ font-weight: 600; margin-bottom: 6px; font-size: 1.05em; }}
   .callout-body p {{ margin: 4px 0; }}
   .callout-body ul, .callout-body ol {{ margin: 4px 0; padding-left: 20px; }}
 
-  /* 证据卡片 */
-  .evidence-card {{ border: 1px solid var(--border); border-radius: var(--radius); margin: 12px 0; overflow: hidden; box-shadow: var(--shadow); }}
-  .evidence-header {{ display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--accent-light); font-size: 0.85em; }}
-  .evidence-relation {{ display: inline-block; padding: 2px 10px; border-radius: 12px; font-weight: 600; font-size: 0.85em; }}
+  /* ================================================================
+     证据卡片
+     ================================================================ */
+  .evidence-card {{
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 14px 0;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease;
+    background: var(--surface);
+  }}
+  .evidence-card:hover {{ box-shadow: var(--shadow-md); }}
+  .evidence-header {{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--accent-light);
+    font-size: 0.85em;
+    border-bottom: 1px solid var(--border-light);
+  }}
+  .evidence-relation {{
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.82em;
+    letter-spacing: 0.3px;
+  }}
   .evidence-relation.support {{ background: var(--good-bg); color: var(--good); }}
   .evidence-relation.attack {{ background: var(--bad-bg); color: var(--bad); }}
   .evidence-relation.neutral {{ background: var(--neutral-bg); color: var(--neutral); }}
-  .evidence-claim {{ color: var(--muted); }}
-  .evidence-body {{ padding: 12px 14px; }}
-  .evidence-title {{ font-weight: 600; margin-bottom: 6px; font-size: 1em; }}
-  .evidence-content {{ font-size: 0.9em; color: var(--text); line-height: 1.7; margin-bottom: 8px; }}
-  .evidence-credibility {{ display: flex; align-items: center; gap: 8px; font-size: 0.8em; color: var(--muted); }}
+  .evidence-claim {{ color: var(--muted); font-size: 0.9em; }}
+  .evidence-body {{ padding: 14px 16px; }}
+  .evidence-title {{ font-weight: 600; margin-bottom: 8px; font-size: 1em; color: var(--text); }}
+  .evidence-content {{ font-size: 0.9em; color: var(--text-secondary); line-height: 1.7; margin-bottom: 10px; }}
+  .evidence-credibility {{ display: flex; align-items: center; gap: 8px; font-size: 0.82em; color: var(--muted); }}
   .cred-bar {{ flex: 1; height: 6px; background: var(--neutral-bg); border-radius: 3px; overflow: hidden; }}
-  .cred-fill {{ height: 100%; border-radius: 3px; transition: width 0.3s; }}
+  .cred-fill {{ height: 100%; border-radius: 3px; transition: width 0.4s ease; }}
   .cred-fill.high {{ background: var(--good); }}
   .cred-fill.mid {{ background: var(--callout-warning); }}
   .cred-fill.low {{ background: var(--bad); }}
-  .evidence-footer {{ padding: 8px 14px; border-top: 1px solid var(--border); font-size: 0.85em; }}
+  .evidence-footer {{
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-light);
+    font-size: 0.85em;
+    background: var(--bg);
+  }}
   .evidence-source {{ color: var(--accent); text-decoration: none; }}
   .evidence-source:hover {{ text-decoration: underline; }}
 
-  /* 报告正文通用样式 */
+  /* ================================================================
+     报告正文通用样式（Markdown → HTML 渲染结果）
+     ================================================================ */
   .report-body, .chapter {{
     padding: 0 4px;
   }}
-  .report-body h2, .chapter h2 {{ font-size: 1.4em; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); color: var(--accent); }}
-  .report-body h3, .chapter h3 {{ font-size: 1.15em; margin: 24px 0 8px; color: var(--text); }}
-  .report-body h4, .chapter h4 {{ font-size: 1.05em; margin: 20px 0 6px; color: var(--text); }}
-  .report-body p, .chapter p {{ margin: 10px 0; line-height: 1.9; }}
-  .report-body ul, .report-body ol, .chapter ul, .chapter ol {{ margin: 10px 0; padding-left: 24px; }}
+  .report-body h2, .chapter h2 {{
+    font-size: 1.4em;
+    margin: 36px 0 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+  }}
+  .report-body h3, .chapter h3 {{
+    font-size: 1.2em;
+    margin: 28px 0 10px;
+    color: var(--text);
+    font-weight: 600;
+  }}
+  .report-body h4, .chapter h4 {{
+    font-size: 1.05em;
+    margin: 22px 0 8px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }}
+  .report-body p, .chapter p {{ margin: 12px 0; line-height: 1.9; color: var(--text); }}
+  .report-body ul, .report-body ol, .chapter ul, .chapter ol {{ margin: 12px 0; padding-left: 24px; }}
   .report-body li, .chapter li {{ margin: 6px 0; line-height: 1.7; }}
-  .report-body table, .chapter table {{ width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9em; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }}
-  .report-body th, .report-body td, .chapter th, .chapter td {{ padding: 10px 14px; border: 1px solid var(--border); text-align: left; }}
-  .report-body th, .chapter th {{ background: var(--accent-light); font-weight: 600; color: var(--accent); }}
-  .report-body tr:nth-child(even), .chapter tr:nth-child(even) {{ background: var(--accent-light); }}
-  .report-body blockquote, .chapter blockquote {{ border-left: 4px solid var(--accent); padding: 12px 16px; margin: 12px 0; background: var(--accent-light); border-radius: 0 8px 8px 0; }}
+  .report-body table, .chapter table {{
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 16px 0;
+    font-size: 0.9em;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }}
+  .report-body th, .report-body td, .chapter th, .chapter td {{
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    text-align: left;
+  }}
+  .report-body th, .chapter th {{
+    background: var(--accent-light);
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 0.9em;
+    letter-spacing: 0.3px;
+  }}
+  .report-body tr:nth-child(even), .chapter tr:nth-child(even) {{ background: var(--bg); }}
+  .report-body blockquote, .chapter blockquote {{
+    border-left: 4px solid var(--accent);
+    padding: 16px 20px;
+    margin: 16px 0;
+    background: var(--accent-light);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    color: var(--text-secondary);
+    font-style: italic;
+  }}
   .report-body blockquote p, .chapter blockquote p {{ margin: 0; }}
-  .report-body hr, .chapter hr {{ border: none; border-top: 1px solid var(--border); margin: 28px 0; }}
-  .report-body code {{ background: var(--neutral-bg); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-family: 'JetBrains Mono', 'Fira Code', monospace; }}
-  .report-body pre {{ background: var(--neutral-bg); padding: 16px; border-radius: 8px; overflow-x: auto; margin: 12px 0; }}
-  .section {{ margin-bottom: 24px; }}
+  .report-body hr, .chapter hr {{ border: none; border-top: 1px solid var(--border); margin: 32px 0; }}
+  .report-body code {{
+    background: var(--neutral-bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.88em;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  }}
+  .report-body pre {{
+    background: var(--surface);
+    padding: 18px 20px;
+    border-radius: var(--radius);
+    overflow-x: auto;
+    margin: 16px 0;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }}
+  .section {{
+    margin-bottom: 24px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+  }}
 
-  @media (max-width: 600px) {{
+  /* ================================================================
+     响应式
+     ================================================================ */
+  @media (max-width: 700px) {{
     body {{ padding: 16px 12px; }}
-    .hero {{ padding: 20px; }}
+    .hero {{ padding: 24px 20px; }}
     .hero h1 {{ font-size: 1.4em; }}
     .kpi-row {{ grid-template-columns: repeat(2, 1fr); }}
     .evidence-header {{ flex-wrap: wrap; }}
+    .section {{ padding: 16px; }}
   }}
 </style>
 </head>

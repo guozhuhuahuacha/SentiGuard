@@ -29,6 +29,7 @@ from .ir import (
     build_document_ir,
     validate_chapter_ir,
 )
+from .json_utils import robust_json_loads
 from .llms.client import get_report_llm
 from .models import ReportData, ReportResult, SectionOutput
 from .prompts.prompts import (
@@ -165,21 +166,20 @@ class LLMReportGenerator:
         }, ensure_ascii=False, indent=2)
 
         response = self.llm.generate(SYSTEM_PROMPT_REPORT_LAYOUT, user_prompt)
-        try:
-            layout = json.loads(response)
+        layout = robust_json_loads(response, "布局设计")
+        if layout:
             # 确保关键字段存在
             layout.setdefault("keyFindings", [])
             layout.setdefault("kpis", kpis)
             layout.setdefault("chapterGuidance", {})
             return layout
-        except (json.JSONDecodeError, TypeError):
-            return {
-                "title": f"事实核查报告",
-                "summary": "",
-                "keyFindings": [],
-                "kpis": kpis,
-                "chapterGuidance": {},
-            }
+        return {
+            "title": f"事实核查报告",
+            "summary": "",
+            "keyFindings": [],
+            "kpis": kpis,
+            "chapterGuidance": {},
+        }
 
     # ================================================================
     # 阶段 B：逐章结构化 IR 生成
@@ -334,13 +334,15 @@ class LLMReportGenerator:
 
         try:
             response = self.llm.generate(SYSTEM_PROMPT_CHAPTER_IR, user_prompt)
-            result = json.loads(response)
-            blocks = result.get("blocks", [])
-            if not isinstance(blocks, list):
-                logger.warning("章节 %s 返回的 blocks 不是 list，跳过", chap_title)
-                return None
-            return blocks
-        except (json.JSONDecodeError, TypeError) as e:
+            result = robust_json_loads(response, f"章节 {chap_title}")
+            if result:
+                blocks = result.get("blocks", [])
+                if not isinstance(blocks, list):
+                    logger.warning("章节 %s 返回的 blocks 不是 list，跳过", chap_title)
+                    return None
+                return blocks
+            return None
+        except Exception as e:
             logger.warning("章节 %s JSON 解析失败: %s", chap_title, e)
             return None
 
