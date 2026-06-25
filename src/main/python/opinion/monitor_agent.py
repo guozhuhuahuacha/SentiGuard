@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from urllib.parse import urlparse
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -29,6 +30,9 @@ from .schemas import (
 )
 
 logger = logging.getLogger("opinion.monitor")
+
+MAX_SEARCH_QUERIES = 4
+MAX_OPINION_EXTRACTIONS = 12
 
 
 # ============================================================
@@ -126,7 +130,7 @@ class OpinionMonitorAgent:
         seen_urls = set()
         all_results = []
 
-        for q in queries[:6]:  # 最多 6 个查询
+        for q in queries[:MAX_SEARCH_QUERIES]:  # 控制总耗时，避免一次请求触发过多搜索
             query_text = q.get("query", "")
             if not query_text:
                 continue
@@ -150,23 +154,65 @@ class OpinionMonitorAgent:
 
         return all_results
 
+
+    def _select_representative_results(self, search_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """选择代表性结果，保证分析速度稳定。"""
+        if len(search_results) <= MAX_OPINION_EXTRACTIONS:
+            return search_results
+
+        with_score = sorted(
+            search_results,
+            key=lambda item: float(item.get("score") or 0),
+            reverse=True,
+        )
+        selected = []
+        seen_domains = set()
+
+        for item in with_score:
+            domain = self._domain_from_url(item.get("url", ""))
+            if domain and domain in seen_domains and len(selected) < MAX_OPINION_EXTRACTIONS // 2:
+                continue
+            selected.append(item)
+            if domain:
+                seen_domains.add(domain)
+            if len(selected) >= MAX_OPINION_EXTRACTIONS:
+                break
+
+        if len(selected) < MAX_OPINION_EXTRACTIONS:
+            selected_urls = {item.get("url", "") for item in selected}
+            for item in with_score:
+                if item.get("url", "") not in selected_urls:
+                    selected.append(item)
+                if len(selected) >= MAX_OPINION_EXTRACTIONS:
+                    break
+
+        logger.info("代表性结果采样: %d/%d 条进入观点抽取", len(selected), len(search_results))
+        return selected
+
+    @staticmethod
+    def _domain_from_url(url: str) -> str:
+        try:
+            return urlparse(url).netloc or ""
+        except Exception:
+            return ""
     # ================================================================
     # 步骤 ③：逐条观点抽取
     # ================================================================
     def _extract_opinions(self, search_results: List[Dict[str, Any]]) -> List[OpinionItem]:
-        """对每条搜索结果调用 LLM 抽取观点立场。"""
+        """对代表性搜索结果调用 LLM 抽取观点立场。"""
         from .prompts.opinion_extraction import SYSTEM_PROMPT_OPINION_EXTRACTION
 
+        sampled_results = self._select_representative_results(search_results)
         opinions = []
-        total = len(search_results)
+        total = len(sampled_results)
 
-        for i, item in enumerate(search_results, 1):
+        for i, item in enumerate(sampled_results, 1):
             data_packet = {
                 "sourceTitle": item.get("title", ""),
                 "sourceUrl": item.get("url", ""),
-                "sourceDomain": item.get("source", ""),
+                "sourceDomain": item.get("source", "") or self._domain_from_url(item.get("url", "")),
                 "snippet": item.get("snippet", ""),
-                "fullContent": item.get("content", "")[:1500],
+                "fullContent": item.get("content", "")[:900],
             }
 
             user_prompt = json.dumps(data_packet, ensure_ascii=False)
@@ -337,7 +383,7 @@ class OpinionMonitorAgent:
 
         # ② 批量搜索
         search_results = self._batch_search(queries)
-        logger.info("步骤②: 搜索得到 %d 条结果", len(search_results))
+        logger.info("步骤②: 搜索得到 %d 条结果，将抽取最多 %d 条代表性观点", len(search_results), MAX_OPINION_EXTRACTIONS)
 
         # ③ 观点抽取
         opinions = self._extract_opinions(search_results)
