@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 from typing import Any, List, Optional
 
-from src.main.python.tools.search_base import get_search_engine, list_search_engines
+from src.main.python.providers.search import get_search_engine, list_search_engines
 
 logger = logging.getLogger("search_service")
 

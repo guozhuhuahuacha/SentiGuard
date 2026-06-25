@@ -9,7 +9,7 @@ import json
 import logging
 from typing import Any, Dict, List
 
-from src.main.python.report.renderers.html import HTMLRenderer
+from src.main.python.fact_check.report.renderers.html import HTMLRenderer
 from .schemas import OpinionPortrait, StanceCluster
 
 logger = logging.getLogger("opinion.generator")

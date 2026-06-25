@@ -21,8 +21,8 @@ from urllib.parse import urlparse
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from src.main.python.llms import create_chat_model
-from src.main.python.tools.retrieve import search_retrieve_news
+from src.main.python.providers.llm import create_chat_model
+from src.main.python.search.retriever import search_retrieve_news
 from .schemas import (
     OpinionItem,
     StanceCluster,

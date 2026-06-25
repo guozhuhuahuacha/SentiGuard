@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
-from hot_topic.data_source.gdelt_client import GDELTClient, _parse_seendate
+from src.main.python.providers.data.gdelt import GDELTClient, _parse_seendate
 
 
 def test_parse_seendate_valid():
@@ -77,5 +77,5 @@ def test_empty_articles():
         df = client.to_dataframe(timespan="1h")
     assert df.empty
     # schema columns still present
-    from hot_topic.config import DOC_COLUMNS
+    from src.main.python.providers.data.base import DOC_COLUMNS
     assert list(df.columns) == DOC_COLUMNS

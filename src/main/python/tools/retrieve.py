@@ -42,7 +42,7 @@ class SearchEngineRetriever:
         # 内容抽取用的 LLM：由调用方传入（遵循开闭原则）。
         # 不传入时默认构造豆包子类——模型名与 API Key 等细节都在 LLM 子类内部解析，本类不关心。
         if llm is None:
-            from src.main.python.llms.doubao_client import DoubaoLLM
+            from src.main.python.providers.llm.doubao import DoubaoLLM
             llm = DoubaoLLM()
         self.llm = llm
         # Initialize Selenium WebDriver
@@ -56,7 +56,7 @@ class SearchEngineRetriever:
         self.wait = WebDriverWait(self.driver, 10)
 
         # 获取搜索引擎实例
-        from src.main.python.tools.search_base import get_search_engine, list_search_engines
+        from src.main.python.providers.search import get_search_engine, list_search_engines
         available = list_search_engines()
         if available:
             # 遍历注册表，找到第一个可用的引擎（兜底策略）

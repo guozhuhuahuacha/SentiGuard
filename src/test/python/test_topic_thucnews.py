@@ -8,7 +8,7 @@ import sys
 import types
 from unittest.mock import patch
 
-from hot_topic.data_source.thucnews_loader import THUCNewsLoader
+from src.main.python.providers.data.thucnews import THUCNewsLoader
 
 
 class _FakeDataset:

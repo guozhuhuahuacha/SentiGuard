@@ -12,11 +12,6 @@ Usage:
 import argparse
 import os
 import sys
-from pathlib import Path
-
-# Add the parent directory to the path so we can import the module
-sys.path.insert(0, str(Path(__file__).parent))
-
 # Set HF mirror
 if "HF_ENDPOINT" not in os.environ:
     os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
@@ -84,7 +79,7 @@ def main():
         config["embedding_model"] = "BAAI/bge-small-zh-v1.5"
 
     # Build arguments for the improved trainer
-    from hot_topic.scripts.train_thucnews_improved import main as trainer_main
+    from src.main.python.topic_model.scripts.train_thucnews_improved import main as trainer_main
 
     # Set default name based on size if not provided
     if args.name is None:

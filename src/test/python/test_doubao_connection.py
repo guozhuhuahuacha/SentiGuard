@@ -110,7 +110,7 @@ def test_doubao_client():
     print("=" * 60)
 
     try:
-        from src.main.python.llms.doubao_client import DoubaoLLM
+        from src.main.python.providers.llm.doubao import DoubaoLLM
 
         print("\n[1] 初始化 DoubaoLLM...")
         llm = DoubaoLLM(model_name="doubao-seed-2-0-mini-260428")

@@ -15,7 +15,7 @@ SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 #   DoubaoLLM      -> 豆包（火山引擎方舟）实现
 # 使用统一入口：
 #   from src.llms import get_llm_provider, create_chat_model, invoke_with_json
-from src.main.python.llms import invoke_with_json
+from src.main.python.providers.llm import invoke_with_json
 
 
 def google_top_snippet(question: str) -> str:

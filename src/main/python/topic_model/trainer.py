@@ -46,8 +46,8 @@ if "HF_ENDPOINT" not in os.environ:
     os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 # 导入配置
-import topic_model_config as config
-from topic_model_config import (
+from . import model_config as config
+from .model_config import (
     DATA_CONFIG,
     MODEL_CONFIG,
     UMAP_CONFIG,
@@ -359,7 +359,7 @@ class TopicModelTrainer:
         sample_size = DATA_CONFIG["sample_size"]
 
         # 使用hot_topic模块的THUCNewsLoader
-        from hot_topic.data_source import THUCNewsLoader
+        from src.main.python.providers.data import THUCNewsLoader
 
         loader = THUCNewsLoader(
             hf_repo=DATA_CONFIG["hf_dataset"],

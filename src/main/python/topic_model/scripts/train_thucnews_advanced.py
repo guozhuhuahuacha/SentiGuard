@@ -33,10 +33,8 @@ import numpy as np
 if "HF_ENDPOINT" not in os.environ:
     os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
-# 导入项目模块
-sys.path.insert(0, str(Path(__file__).parent))
-from hot_topic.data_source import THUCNewsLoader
-from hot_topic.storage.csv_writer import write_csv
+from src.main.python.providers.data import THUCNewsLoader
+from src.main.python.topic_model.storage.csv_writer import write_csv
 
 # 扩展中文停用词
 EXTENDED_CHINESE_STOPWORDS = {

@@ -4,9 +4,8 @@ from __future__ import annotations
 import datetime
 from typing import List, Optional, Tuple
 
-from src.main.python.services.baidu_collector import BaiduHotItem
-from src.main.python.services.clusterer import HotEventCluster
-from src.main.python.services.db import get_connection
+from .clusterer import HotEventCluster
+from .db import get_connection
 
 
 class DbWriter:

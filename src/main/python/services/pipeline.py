@@ -5,10 +5,10 @@ import datetime
 import logging
 from typing import Dict, List
 
-from src.main.python.services.baidu_collector import BaiduCollector
-from src.main.python.services.clusterer import Clusterer
-from src.main.python.services.db_writer import DbWriter
-from src.main.python.services.sentiment_analyzer import SentimentAnalyzer
+from src.main.python.providers.trending.baidu import BaiduCollector
+from .clusterer import Clusterer
+from .db_writer import DbWriter
+from .sentiment_analyzer import SentimentAnalyzer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)

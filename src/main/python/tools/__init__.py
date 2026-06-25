@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-工具模块
-"""
-from src.main.python.tools.retrieve import search_retrieve_news
+工具模块 — FactAgent 使用的 LangChain @tool 封装。
 
-# 导入搜索引擎实现以完成注册
-from src.main.python.tools import search_anspire
-from src.main.python.tools.search_base import (
+向后兼容层：搜索逻辑已迁移至 search/，此模块保留重导出。
+新代码请使用：
+    from src.main.python.search import search_retrieve_news, search_summary, search_fulltext
+"""
+from src.main.python.search.retriever import search_retrieve_news
+
+# 搜索引擎接口（从 providers 重导出，保持兼容）
+from src.main.python.providers.search import (
     BaseSearchEngine,
     SearchResult,
     SearchQuery,
@@ -17,5 +20,8 @@ from src.main.python.tools.search_base import (
     list_search_engines,
 )
 
-# 搜索服务模块（两种搜索策略）
-from src.main.python.tools import search_service
+# 触发搜索引擎注册
+from src.main.python.providers.search import anspire as _anspire  # noqa: F401
+
+# 搜索服务模块（两种策略）
+from src.main.python.search import service as search_service
